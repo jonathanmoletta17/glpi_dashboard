@@ -1,9 +1,10 @@
-modules = ["python-3.11", "nodejs-20", "web"]
+modules = ["python-3.11", "web", "nodejs-20"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
+packages = ["libxcrypt", "openssl", "postgresql"]
 
 [workflows]
 runButton = "Project"
@@ -55,5 +56,5 @@ externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "cd backend && gunicorn --bind=0.0.0.0:5000 --reuse-port app:app & cd frontend && npm run preview"]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 build = ["npm", "run", "build"]

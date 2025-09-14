@@ -22,3 +22,21 @@ werkzeug==2.3.7
 httpx
 psutil
 # requests já listado acima
+email_validator
+flask
+flask-sqlalchemy
+gunicorn
+psycopg2-binary
+email-validator
+flask
+flask-caching
+flask-cors
+flask-sqlalchemy
+gunicorn
+hiredis
+prometheus_client
+psycopg2-binary
+pydantic
+python-dotenv
+redis
+requests
