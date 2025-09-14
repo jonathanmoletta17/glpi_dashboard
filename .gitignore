@@ -1,0 +1,113 @@
+# Python / Flask
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.eggs/
+*.egg-info/
+*.egg
+.local/
+.pytest_cache
+
+# Arquivos de ambiente - NUNCA comite o .env
+.env
+.env.*
+!.env.example
+
+# Arquivos de log
+*.log
+logs/
+
+# Cache e arquivos temporários
+.cache/
+*.tmp
+*.temp
+
+# Configurações de IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Frontend (Node.js / React)
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Sistema operacional
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Arquivos de backup
+*.bak
+*.backup
+*.old
+
+# Arquivos de teste locais (não os da pasta scripts/tests)
+test_local_*
+debug_local_*
+
+# Arquivos de debug específicos do projeto
+debug_*.py
+debug_*.txt
+resultado_*.txt
+test_*.py
+!test_app.py
+!test_groups.py
+!test_user_search.py
+simple_*.py
+minimal_*.py
+*.txt
+!requirements*.txt
+!README.txt
+
+# Trae AI IDE
+.trae/
+
+# Artifacts e relatórios
+artifacts/
+reports/
+
+# Node modules na raiz (se existir)
+node_modules/
+
+# Docker
+docker-compose.override.yml
+
+# Relatórios de monitoramento
+monitoring_report_*.json
+
+# Playwright reports
+playwright-report/
+test-results/
+
+# Coverage reports
+coverage/
+frontend/coverage/
+
+# Nginx configs locais
+nginx/
+.clinerules/byterover-rules.md
+.kilocode/rules/byterover-rules.md
+.roo/rules/byterover-rules.md
+.windsurf/rules/byterover-rules.md
+.cursor/rules/byterover-rules.mdc
+.kiro/steering/byterover-rules.md
+.qoder/rules/byterover-rules.md
+.augment/rules/byterover-rules.md

@@ -1,0 +1,485 @@
+name: Contract Tests
+
+# Executa testes de contrato em PRs e pushes para main
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+    types: [ opened, synchronize, reopened ]
+  schedule:
+    # Executa diariamente às 6:00 UTC para detectar regressões
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: 'Atualizar snapshots de contrato'
+        required: false
+        default: false
+        type: boolean
+      run_visual_tests:
+        description: 'Executar testes visuais'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  # Versões e paths
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/ms-playwright
+  
+  # Configurações de teste
+  PYTEST_ADDOPTS: "--strict-markers --strict-config"
+  COVERAGE_CORE: sysmon
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
+jobs:
+  # Job para testes de contrato de API
+  api-contract-tests:
+    name: API Contract Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    strategy:
+      matrix:
+        test-group: [dto, query, api-compatibility, backward-compatibility]
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+      
+      - name: Cache snapshots de contrato
+        uses: actions/cache@v3
+        with:
+          path: backend/tests/unit/application/snapshots
+          key: contract-snapshots-${{ runner.os }}-${{ hashFiles('backend/core/application/**/*.py') }}
+          restore-keys: |
+            contract-snapshots-${{ runner.os }}-
+      
+      - name: Executar testes de contrato - ${{ matrix.test-group }}
+        run: |
+          cd backend
+          python -m pytest tests/unit/application/test_contract_snapshots.py::Test${{ matrix.test-group }} \
+            -v \
+            --tb=short \
+            --junitxml=test-results/contract-${{ matrix.test-group }}.xml \
+            --cov=core.application \
+            --cov-report=xml:coverage-${{ matrix.test-group }}.xml
+      
+      - name: Atualizar snapshots (se solicitado)
+        if: github.event.inputs.update_snapshots == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          cd backend
+          python -m pytest tests/unit/application/test_contract_snapshots.py::Test${{ matrix.test-group }} \
+            --update-snapshots
+      
+      - name: Upload resultados dos testes
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: contract-test-results-${{ matrix.test-group }}
+          path: |
+            backend/test-results/
+            backend/coverage-${{ matrix.test-group }}.xml
+          retention-days: 30
+      
+      - name: Upload snapshots atualizados
+        uses: actions/upload-artifact@v3
+        if: github.event.inputs.update_snapshots == 'true'
+        with:
+          name: updated-snapshots-${{ matrix.test-group }}
+          path: backend/tests/unit/application/snapshots/
+          retention-days: 7
+
+  # Job para testes visuais
+  visual-regression-tests:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event.inputs.run_visual_tests != 'false'
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        viewport: [desktop, tablet, mobile]
+        exclude:
+          # Webkit no mobile pode ser instável
+          - browser: webkit
+            viewport: mobile
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Instalar dependências
+        run: |
+          # Backend
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+          pip install playwright
+          
+          # Frontend
+          cd frontend
+          npm ci
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('backend/requirements-dev.txt') }}
+      
+      - name: Instalar browsers Playwright
+        run: |
+          playwright install ${{ matrix.browser }}
+          playwright install-deps ${{ matrix.browser }}
+      
+      - name: Cache baseline screenshots
+        uses: actions/cache@v3
+        with:
+          path: backend/tests/visual/screenshots
+          key: visual-baselines-${{ runner.os }}-${{ matrix.browser }}-${{ matrix.viewport }}-${{ hashFiles('frontend/src/**/*') }}
+          restore-keys: |
+            visual-baselines-${{ runner.os }}-${{ matrix.browser }}-${{ matrix.viewport }}-
+      
+      - name: Iniciar aplicação para testes
+        run: |
+          # Iniciar backend em modo de teste
+          cd backend
+          python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
+          
+          # Iniciar frontend
+          cd frontend
+          npm run build
+          npm run preview -- --host 0.0.0.0 --port 3000 &
+          
+          # Aguardar serviços ficarem prontos
+          sleep 10
+          curl -f http://localhost:8000/health || exit 1
+          curl -f http://localhost:3000 || exit 1
+      
+      - name: Executar testes visuais
+        env:
+          PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
+          VIEWPORT_SIZE: ${{ matrix.viewport }}
+        run: |
+          cd backend
+          python -m pytest tests/visual/test_visual_regression.py \
+            -v \
+            --tb=short \
+            --browser=${{ matrix.browser }} \
+            --viewport=${{ matrix.viewport }} \
+            --junitxml=test-results/visual-${{ matrix.browser }}-${{ matrix.viewport }}.xml
+      
+      - name: Upload screenshots de diferenças
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: visual-diff-${{ matrix.browser }}-${{ matrix.viewport }}
+          path: |
+            backend/tests/visual/screenshots/*_current.png
+            backend/tests/visual/screenshots/*_diff.png
+          retention-days: 14
+      
+      - name: Upload resultados dos testes visuais
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: visual-test-results-${{ matrix.browser }}-${{ matrix.viewport }}
+          path: backend/test-results/
+          retention-days: 30
+
+  # Job para consolidar resultados
+  consolidate-results:
+    name: Consolidar Resultados
+    runs-on: ubuntu-latest
+    needs: [api-contract-tests, visual-regression-tests]
+    if: always()
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Download todos os artefatos
+        uses: actions/download-artifact@v3
+        with:
+          path: test-artifacts
+      
+      - name: Consolidar relatórios de cobertura
+        run: |
+          pip install coverage[toml]
+          
+          # Combinar arquivos de cobertura
+          find test-artifacts -name "coverage-*.xml" -exec cp {} . \;
+          
+          # Gerar relatório consolidado
+          coverage combine
+          coverage xml -o coverage-consolidated.xml
+          coverage html -d coverage-html
+      
+      - name: Gerar relatório de testes
+        run: |
+          pip install junitparser
+          
+          # Consolidar resultados JUnit
+          python -c "
+          from junitparser import JUnitXml
+          import glob
+          
+          # Encontrar todos os arquivos XML
+          xml_files = glob.glob('test-artifacts/**/test-results/*.xml', recursive=True)
+          
+          if xml_files:
+              # Combinar todos os resultados
+              combined = JUnitXml()
+              for xml_file in xml_files:
+                  try:
+                      xml = JUnitXml.fromfile(xml_file)
+                      combined += xml
+                  except Exception as e:
+                      print(f'Erro ao processar {xml_file}: {e}')
+              
+              # Salvar resultado consolidado
+              combined.write('test-results-consolidated.xml')
+              
+              # Estatísticas
+              print(f'Total de testes: {combined.tests}')
+              print(f'Falhas: {combined.failures}')
+              print(f'Erros: {combined.errors}')
+              print(f'Pulados: {combined.skipped}')
+          else:
+              print('Nenhum arquivo de resultado encontrado')
+          "
+      
+      - name: Upload relatório consolidado
+        uses: actions/upload-artifact@v3
+        with:
+          name: consolidated-test-report
+          path: |
+            test-results-consolidated.xml
+            coverage-consolidated.xml
+            coverage-html/
+          retention-days: 90
+      
+      - name: Comentar PR com resultados
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Ler resultados consolidados
+            let summary = '## 📊 Resultados dos Testes de Contrato\n\n';
+            
+            try {
+              // Verificar se arquivo existe
+              if (fs.existsSync('test-results-consolidated.xml')) {
+                const xml = fs.readFileSync('test-results-consolidated.xml', 'utf8');
+                
+                // Parse básico do XML (implementação simplificada)
+                const testsMatch = xml.match(/tests="(\d+)"/)?.[1] || '0';
+                const failuresMatch = xml.match(/failures="(\d+)"/)?.[1] || '0';
+                const errorsMatch = xml.match(/errors="(\d+)"/)?.[1] || '0';
+                
+                summary += `### Testes de API\n`;
+                summary += `- ✅ **${testsMatch}** testes executados\n`;
+                summary += `- ❌ **${failuresMatch}** falhas\n`;
+                summary += `- 🚨 **${errorsMatch}** erros\n\n`;
+                
+                if (parseInt(failuresMatch) > 0 || parseInt(errorsMatch) > 0) {
+                  summary += `⚠️ **Atenção**: Foram detectadas falhas nos testes de contrato. Verifique se as mudanças não quebram a compatibilidade da API.\n\n`;
+                }
+              }
+              
+              // Verificar testes visuais
+              const visualArtifacts = fs.readdirSync('test-artifacts')
+                .filter(name => name.startsWith('visual-test-results-'));
+              
+              if (visualArtifacts.length > 0) {
+                summary += `### Testes Visuais\n`;
+                summary += `- 🎨 **${visualArtifacts.length}** combinações browser/viewport testadas\n\n`;
+              }
+              
+              summary += `### 📋 Artefatos Disponíveis\n`;
+              summary += `- [Relatório Consolidado](../actions/runs/${context.runId})\n`;
+              summary += `- [Cobertura de Código](../actions/runs/${context.runId})\n`;
+              
+            } catch (error) {
+              summary += `❌ Erro ao processar resultados: ${error.message}\n`;
+            }
+            
+            // Postar comentário
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  # Job para verificar breaking changes
+  breaking-changes-detection:
+    name: Detectar Breaking Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout código (HEAD)
+        uses: actions/checkout@v4
+        with:
+          path: current
+      
+      - name: Checkout código (base)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r current/backend/requirements-dev.txt
+      
+      - name: Gerar snapshots da versão base
+        run: |
+          cd base/backend
+          python -m pytest tests/unit/application/test_contract_snapshots.py \
+            --update-snapshots \
+            -q
+          
+          # Copiar snapshots para comparação
+          cp -r tests/unit/application/snapshots ../snapshots-base
+      
+      - name: Gerar snapshots da versão atual
+        run: |
+          cd current/backend
+          python -m pytest tests/unit/application/test_contract_snapshots.py \
+            --update-snapshots \
+            -q
+          
+          # Copiar snapshots para comparação
+          cp -r tests/unit/application/snapshots ../snapshots-current
+      
+      - name: Comparar snapshots e detectar breaking changes
+        run: |
+          python -c "
+          import json
+          import os
+          from pathlib import Path
+          
+          base_dir = Path('snapshots-base')
+          current_dir = Path('snapshots-current')
+          
+          breaking_changes = []
+          
+          # Comparar arquivos de snapshot
+          for base_file in base_dir.glob('*.json'):
+              current_file = current_dir / base_file.name
+              
+              if not current_file.exists():
+                  breaking_changes.append(f'Snapshot removido: {base_file.name}')
+                  continue
+              
+              # Carregar e comparar JSONs
+              with open(base_file) as f:
+                  base_data = json.load(f)
+              
+              with open(current_file) as f:
+                  current_data = json.load(f)
+              
+              # Verificar se campos foram removidos (breaking change)
+              def check_removed_fields(base_obj, current_obj, path=''):
+                  if isinstance(base_obj, dict) and isinstance(current_obj, dict):
+                      for key in base_obj:
+                          if key not in current_obj:
+                              breaking_changes.append(f'Campo removido: {path}.{key}' if path else f'Campo removido: {key}')
+                          else:
+                              check_removed_fields(base_obj[key], current_obj[key], f'{path}.{key}' if path else key)
+              
+              check_removed_fields(base_data, current_data)
+          
+          # Verificar novos snapshots (podem indicar novas APIs)
+          for current_file in current_dir.glob('*.json'):
+              base_file = base_dir / current_file.name
+              if not base_file.exists():
+                  print(f'Novo snapshot detectado: {current_file.name}')
+          
+          # Salvar resultados
+          if breaking_changes:
+              print('🚨 BREAKING CHANGES DETECTADOS:')
+              for change in breaking_changes:
+                  print(f'  - {change}')
+              
+              # Salvar para uso posterior
+              with open('breaking-changes.txt', 'w') as f:
+                  f.write('\n'.join(breaking_changes))
+              
+              exit(1)
+          else:
+              print('✅ Nenhum breaking change detectado')
+          "
+      
+      - name: Comentar breaking changes no PR
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            
+            if (fs.existsSync('breaking-changes.txt')) {
+              const changes = fs.readFileSync('breaking-changes.txt', 'utf8');
+              
+              const body = `## 🚨 Breaking Changes Detectados
+              
+              As seguintes mudanças podem quebrar a compatibilidade da API:
+              
+              \`\`\`
+              ${changes}
+              \`\`\`
+              
+              ⚠️ **Ação Necessária**: Revise estas mudanças e considere:
+              - Manter campos existentes para compatibilidade
+              - Implementar versionamento da API
+              - Atualizar documentação de migração
+              - Comunicar breaking changes aos consumidores da API
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }

@@ -1,0 +1,24 @@
+# Core Flask dependencies
+Flask==2.3.3
+Flask-CORS==4.0.0
+Flask-Caching==2.1.0
+Flask-SQLAlchemy==3.0.5
+
+# HTTP client and utilities
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Email validation
+email-validator==2.0.0
+
+# Production server
+gunicorn==21.2.0
+
+# Database support (optional)
+# psycopg2-binary==2.9.7  # Removido - projeto usa MySQL
+
+# Development dependencies
+werkzeug==2.3.7
+httpx
+psutil
+# requests já listado acima
