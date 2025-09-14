@@ -300,8 +300,13 @@ class MetricsFacade(UnifiedGLPIServiceContract):
                 return result
             else:
                 from ..dto.metrics_dto import create_empty_dashboard_metrics
-
-                return create_empty_dashboard_metrics()
+                
+                empty_data = create_empty_dashboard_metrics()
+                # Adicionar identificador de dados GLPI (mesmo que vazios)
+                if hasattr(empty_data, '__dict__'):
+                    empty_data.data_source = "glpi"
+                    empty_data.is_mock_data = False
+                return empty_data
 
         except Exception as e:
             self.logger.error(f"Error getting dashboard metrics with date filter: {e}")
@@ -360,8 +365,13 @@ class MetricsFacade(UnifiedGLPIServiceContract):
                 return result
             else:
                 from ..dto.metrics_dto import create_empty_dashboard_metrics
-
-                return create_empty_dashboard_metrics()
+                
+                empty_data = create_empty_dashboard_metrics()
+                # Adicionar identificador de dados GLPI (mesmo que vazios)
+                if hasattr(empty_data, '__dict__'):
+                    empty_data.data_source = "glpi"
+                    empty_data.is_mock_data = False
+                return empty_data
 
         except Exception as e:
             self.logger.error(f"Error getting dashboard metrics with modification date filter: {e}")
@@ -438,8 +448,13 @@ class MetricsFacade(UnifiedGLPIServiceContract):
                 return result
             else:
                 from ..dto.metrics_dto import create_empty_dashboard_metrics
-
-                return create_empty_dashboard_metrics()
+                
+                empty_data = create_empty_dashboard_metrics()
+                # Adicionar identificador de dados GLPI (mesmo que vazios)
+                if hasattr(empty_data, '__dict__'):
+                    empty_data.data_source = "glpi"
+                    empty_data.is_mock_data = False
+                return empty_data
 
         except Exception as e:
             self.logger.error(f"Error getting dashboard metrics with filters: {e}")
