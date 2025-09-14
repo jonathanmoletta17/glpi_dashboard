@@ -22,6 +22,9 @@ export interface DashboardMetrics {
   };
   timestamp?: string;
   systemStatus?: SystemStatus;
+  // ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+  data_source: 'glpi' | 'mock';
+  is_mock_data: boolean;
 }
 
 export interface SystemStatus {
@@ -44,6 +47,9 @@ export interface TechnicianRanking {
   ticketsResolved?: number;
   ticketsInProgress?: number;
   averageResolutionTime?: number;
+  // ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+  data_source: 'glpi' | 'mock';
+  is_mock_data: boolean;
 }
 
 export interface NewTicket {
@@ -55,6 +61,9 @@ export interface NewTicket {
   priority: string;
   status: string;
   level?: string;
+  // ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+  data_source: 'glpi' | 'mock';
+  is_mock_data: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -62,6 +71,9 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   timestamp?: string;
+  // ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+  data_source: 'glpi' | 'mock';
+  is_mock_data: boolean;
 }
 
 export interface ApiError {

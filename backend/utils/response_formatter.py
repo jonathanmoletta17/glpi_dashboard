@@ -15,6 +15,7 @@ class ResponseFormatter:
         filters: Optional[Dict] = None,
         start_time: Optional[float] = None,
         correlation_id: Optional[str] = None,
+        is_mock_data: bool = False,  # ← NOVO PARÂMETRO
     ) -> Dict[str, Any]:
         """Formata resposta das métricas do dashboard de forma unificada"""
         try:
@@ -152,7 +153,13 @@ class ResponseFormatter:
                     },
                     "filters_applied": filters or {},
                     "timestamp": datetime.now().isoformat(),
+                    # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+                    "data_source": "mock" if is_mock_data else "glpi",
+                    "is_mock_data": is_mock_data,
                 },
+                # ← IDENTIFICADORES TAMBÉM NO NÍVEL RAIZ
+                "data_source": "mock" if is_mock_data else "glpi",
+                "is_mock_data": is_mock_data,
             }
 
             if execution_time is not None:

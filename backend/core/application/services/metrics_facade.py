@@ -168,7 +168,12 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         # Verificar se deve usar dados mock diretamente
         if self.use_mock_data:
             self.logger.info("Usando dados mock (configuração USE_MOCK_DATA=true)")
-            return get_mock_dashboard_metrics()
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
         
         # Verificar cache primeiro
         cache_key = f"dashboard_metrics_{correlation_id or 'default'}"
@@ -191,6 +196,10 @@ class MetricsFacade(UnifiedGLPIServiceContract):
                 # Verificar se a resposta é válida
                 if hasattr(api_response, "data") and api_response.data:
                     result = api_response.data
+                    # Adicionar identificador de dados reais do GLPI
+                    if hasattr(result, '__dict__'):
+                        result.data_source = "glpi"
+                        result.is_mock_data = False
                     # Cache do resultado
                     unified_cache.set(self.METRICS_CACHE_NS, cache_key, result, ttl_seconds=180)
                     self.logger.info("Métricas obtidas do GLPI com sucesso")
@@ -223,7 +232,12 @@ class MetricsFacade(UnifiedGLPIServiceContract):
                 # Se é a última tentativa, fazer fallback
                 if attempt == max_retries:
                     self.logger.error(f"Todas as {max_retries + 1} tentativas falharam, fazendo fallback para dados mock")
-                    return get_mock_dashboard_metrics()
+                    mock_data = get_mock_dashboard_metrics()
+                    # Adicionar identificador de mock no fallback
+                    if hasattr(mock_data, '__dict__'):
+                        mock_data.data_source = "mock"
+                        mock_data.is_mock_data = True
+                    return mock_data
                 
                 # Aguardar antes da próxima tentativa
                 import time
@@ -231,7 +245,12 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         
         # Fallback final para dados mock
         self.logger.warning("Fazendo fallback para dados mock devido a falhas no GLPI")
-        return get_mock_dashboard_metrics()
+        mock_data = get_mock_dashboard_metrics()
+        # Adicionar identificador de mock no fallback final
+        if hasattr(mock_data, '__dict__'):
+            mock_data.data_source = "mock"
+            mock_data.is_mock_data = True
+        return mock_data
 
     def get_dashboard_metrics_with_date_filter(
         self,

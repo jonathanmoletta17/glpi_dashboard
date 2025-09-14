@@ -103,6 +103,9 @@ class DashboardMetrics(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     period_start: Optional[datetime] = None
     period_end: Optional[datetime] = None
+    # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+    data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
+    is_mock_data: bool = Field(default=False, description="Indica se são dados simulados")
 
 
 class TechnicianRanking(BaseModel):
@@ -113,6 +116,9 @@ class TechnicianRanking(BaseModel):
     ticket_count: int = Field(ge=0)
     level: str
     performance_score: Optional[float] = None
+    # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+    data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
+    is_mock_data: bool = Field(default=False, description="Indica se são dados simulados")
 
 
 class NewTicket(BaseModel):
@@ -126,6 +132,9 @@ class NewTicket(BaseModel):
     priority: str
     status: str = "Novo"
     filters_applied: Optional[FiltersApplied] = None
+    # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+    data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
+    is_mock_data: bool = Field(default=False, description="Indica se são dados simulados")
 
 
 class ApiResponse(BaseModel):
@@ -137,6 +146,9 @@ class ApiResponse(BaseModel):
     errors: Optional[List[str]] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     execution_time_ms: Optional[float] = None
+    # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
+    data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
+    is_mock_data: bool = Field(default=False, description="Indica se são dados simulados")
 
     def set_execution_time(self, start_time: Optional[datetime] = None):
         """Calculate and set execution time from start time."""
