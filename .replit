@@ -7,6 +7,43 @@ channel = "stable-25_05"
 packages = ["libxcrypt", "openssl", "postgresql"]
 
 [workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend API"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend"
+
+[[workflows.workflow]]
+name = "Backend API"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && export PORT=8000 && export HOST=localhost && export SECRET_KEY=dev-secret-key-DO-NOT-USE-IN-PRODUCTION && export USE_MOCK_DATA=true && export FLASK_ENV=development && export FLASK_DEBUG=true && python app.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Frontend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[ports]]
 localPort = 5000
@@ -15,6 +52,10 @@ externalPort = 80
 [[ports]]
 localPort = 5001
 externalPort = 3000
+
+[[ports]]
+localPort = 35717
+externalPort = 3001
 
 [deployment]
 deploymentTarget = "autoscale"
