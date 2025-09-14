@@ -259,6 +259,16 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         correlation_id: Optional[str] = None,
     ) -> DashboardMetrics:
         """Get dashboard metrics with date filter."""
+        # Verificar se deve usar dados mock diretamente
+        if self.use_mock_data:
+            self.logger.info("Usando dados mock (configuração USE_MOCK_DATA=true) - date filter")
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
+            
         cache_key = {
             "method": "dashboard_metrics_date_filter",
             "start_date": start_date,
@@ -282,6 +292,10 @@ class MetricsFacade(UnifiedGLPIServiceContract):
             # Extract DashboardMetrics from ApiResponse
             if hasattr(api_response, "data") and api_response.data:
                 result = api_response.data
+                # Adicionar identificador de dados reais do GLPI
+                if hasattr(result, '__dict__'):
+                    result.data_source = "glpi"
+                    result.is_mock_data = False
                 unified_cache.set(self.METRICS_CACHE_NS, cache_key, result, ttl_seconds=180)
                 return result
             else:
@@ -291,9 +305,12 @@ class MetricsFacade(UnifiedGLPIServiceContract):
 
         except Exception as e:
             self.logger.error(f"Error getting dashboard metrics with date filter: {e}")
-            from ..dto.metrics_dto import create_empty_dashboard_metrics
-
-            return create_empty_dashboard_metrics()
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock no fallback
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
 
     def get_dashboard_metrics_with_modification_date_filter(
         self,
@@ -302,6 +319,16 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         correlation_id: Optional[str] = None,
     ) -> DashboardMetrics:
         """Get dashboard metrics with modification date filter."""
+        # Verificar se deve usar dados mock diretamente
+        if self.use_mock_data:
+            self.logger.info("Usando dados mock (configuração USE_MOCK_DATA=true) - modification date filter")
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
+            
         cache_key = {
             "method": "dashboard_metrics_mod_date_filter",
             "start_date": start_date,
@@ -325,6 +352,10 @@ class MetricsFacade(UnifiedGLPIServiceContract):
             # Extract DashboardMetrics from ApiResponse
             if hasattr(api_response, "data") and api_response.data:
                 result = api_response.data
+                # Adicionar identificador de dados reais do GLPI
+                if hasattr(result, '__dict__'):
+                    result.data_source = "glpi"
+                    result.is_mock_data = False
                 unified_cache.set(self.METRICS_CACHE_NS, cache_key, result, ttl_seconds=180)
                 return result
             else:
@@ -334,9 +365,12 @@ class MetricsFacade(UnifiedGLPIServiceContract):
 
         except Exception as e:
             self.logger.error(f"Error getting dashboard metrics with modification date filter: {e}")
-            from ..dto.metrics_dto import create_empty_dashboard_metrics
-
-            return create_empty_dashboard_metrics()
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock no fallback
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
 
     def get_dashboard_metrics_with_filters(
         self,
@@ -350,6 +384,16 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         correlation_id: Optional[str] = None,
     ) -> DashboardMetrics:
         """Get dashboard metrics with multiple filters."""
+        # Verificar se deve usar dados mock diretamente
+        if self.use_mock_data:
+            self.logger.info("Usando dados mock (configuração USE_MOCK_DATA=true) - filters")
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
+            
         cache_key = {
             "method": "dashboard_metrics_filters",
             "start_date": start_date,
@@ -386,6 +430,10 @@ class MetricsFacade(UnifiedGLPIServiceContract):
             # Extract DashboardMetrics from ApiResponse
             if hasattr(api_response, "data") and api_response.data:
                 result = api_response.data
+                # Adicionar identificador de dados reais do GLPI
+                if hasattr(result, '__dict__'):
+                    result.data_source = "glpi"
+                    result.is_mock_data = False
                 unified_cache.set(self.METRICS_CACHE_NS, cache_key, result, ttl_seconds=180)
                 return result
             else:
@@ -395,9 +443,12 @@ class MetricsFacade(UnifiedGLPIServiceContract):
 
         except Exception as e:
             self.logger.error(f"Error getting dashboard metrics with filters: {e}")
-            from ..dto.metrics_dto import create_empty_dashboard_metrics
-
-            return create_empty_dashboard_metrics()
+            mock_data = get_mock_dashboard_metrics()
+            # Adicionar identificador de mock no fallback
+            if hasattr(mock_data, '__dict__'):
+                mock_data.data_source = "mock"
+                mock_data.is_mock_data = True
+            return mock_data
 
     # Technician Service Methods
 
