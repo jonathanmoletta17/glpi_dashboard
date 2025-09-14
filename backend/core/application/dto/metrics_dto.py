@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, Union, List
 
 from pydantic import BaseModel, Field, validator
-from pydantic.types import NonNegativeInt, PositiveInt
+# Removed problematic Pydantic types
 
 # Import enums from schemas (single source of truth)
 from schemas.dashboard import TicketStatus, TechnicianLevel, DashboardMetrics, TechnicianRanking, ApiResponse, ApiError
@@ -25,11 +25,11 @@ class MetricsFilterDTO(BaseModel):
     level: Optional[TechnicianLevel] = Field(None, description="Nível do técnico")
     service_level: Optional[str] = Field(None, description="Nível de serviço")
     use_modification_date: bool = Field(False, description="Usar data de modificação ao invés de criação")
-    technician_id: Optional[PositiveInt] = Field(None, description="ID do técnico")
-    category_id: Optional[PositiveInt] = Field(None, description="ID da categoria")
+    technician_id: Optional[int] = Field(None, ge=1, description="ID do técnico")
+    category_id: Optional[int] = Field(None, ge=1, description="ID da categoria")
     priority: Optional[int] = Field(None, ge=1, le=6, description="Prioridade do ticket (1-6)")
-    limit: Optional[PositiveInt] = Field(None, description="Limite de resultados")
-    offset: Optional[NonNegativeInt] = Field(0, description="Offset para paginação")
+    limit: Optional[int] = Field(None, ge=1, description="Limite de resultados")
+    offset: Optional[int] = Field(0, ge=0, description="Offset para paginação")
 
     @validator("end_date")
     def validate_end_date(cls, v, values):

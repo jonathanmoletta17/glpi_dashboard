@@ -3,6 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from api.routes import api_bp
+from api.comparison_routes import comparison_bp
 from config.settings import active_config
 from config.logging_config import configure_structured_logging
 from utils.observability_middleware import setup_observability
@@ -36,6 +37,7 @@ setup_observability(app)
 
 # Registra blueprints
 app.register_blueprint(api_bp)
+app.register_blueprint(comparison_bp)
 # app.register_blueprint(dashboard_bp, url_prefix='/dashboard') # Removendo esta linha
 
 if __name__ == "__main__":

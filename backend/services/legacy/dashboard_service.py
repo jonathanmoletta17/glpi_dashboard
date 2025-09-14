@@ -79,7 +79,13 @@ class GLPIDashboardService:
             level_metrics = self.metrics_service.get_metrics_by_level(start_date, end_date)
             if level_metrics and not level_metrics.get("error"):
                 result["by_level"] = level_metrics.get("levels", {})
-                result["totals"] = level_metrics.get("totals", result["totals"])
+                # Map the totals structure from metrics service to dashboard format
+                metrics_totals = level_metrics.get("totals", {})
+                if metrics_totals:
+                    result["totals"]["total_tickets"] = metrics_totals.get("total", 0)
+                    result["totals"]["resolved_tickets"] = metrics_totals.get("resolved", 0)
+                    result["totals"]["pending_tickets"] = metrics_totals.get("pending", 0)
+                    result["totals"]["new_tickets"] = metrics_totals.get("pending", 0)  # Assuming new tickets are part of pending
                 
             # Get status breakdown
             status_breakdown = self._get_status_breakdown(start_date, end_date)

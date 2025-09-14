@@ -104,7 +104,12 @@ class GLPIAuthenticationService:
         
     def _perform_authentication(self) -> bool:
         """Perform the actual authentication request."""
-        url = f"{self.glpi_url}/apirest.php/initSession"
+        # Construct the proper API URL
+        if self.glpi_url.endswith('/apirest.php'):
+            base_url = self.glpi_url.rsplit('/apirest.php', 1)[0]
+        else:
+            base_url = self.glpi_url.rstrip('/')
+        url = f"{base_url}/apirest.php/initSession"
         headers = {
             "Content-Type": "application/json",
             "App-Token": self.app_token,
@@ -114,15 +119,15 @@ class GLPIAuthenticationService:
         try:
             start_time = time.time()
             
+            response = requests.post(url, headers=headers, timeout=30)
+            response_time = time.time() - start_time
+            
             if self.structured_logger:
                 log_glpi_request(
                     url,
-                    200,  # Expected status
-                    0.0   # Duration placeholder
+                    response.status_code,
+                    response_time
                 )
-            
-            response = requests.post(url, headers=headers, timeout=30)
-            response_time = time.time() - start_time
             
             if response.status_code == 200:
                 data = response.json()
@@ -164,7 +169,9 @@ class GLPIAuthenticationService:
             return True
             
         try:
-            url = f"{self.glpi_url}/apirest.php/killSession"
+            # Remove /apirest.php if already present in glpi_url to avoid duplication
+            base_url = self.glpi_url.rstrip('/apirest.php')
+            url = f"{base_url}/apirest.php/killSession"
             headers = self.get_api_headers()
             
             if headers:

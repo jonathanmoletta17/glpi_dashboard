@@ -8,6 +8,7 @@ Provides sync wrappers for Flask while using async core internally.
 
 import asyncio
 import logging
+import uuid
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 
@@ -16,6 +17,7 @@ from ...application.dto.metrics_dto import MetricsFilterDTO
 from ...application.queries.metrics_query import MetricsQueryFactory, QueryContext, MetricsDataSource
 from ...infrastructure.cache.unified_cache import unified_cache
 from ...infrastructure.external.glpi.metrics_adapter import GLPIMetricsAdapter, GLPIConfig
+from ...infrastructure.adapters.legacy_service_adapter import LegacyServiceAdapter
 from config.settings import active_config, Config
 from utils.mock_data_generator import (
     get_mock_dashboard_metrics,
@@ -37,26 +39,38 @@ class MetricsFacade(UnifiedGLPIServiceContract):
     """
 
     def __init__(self):
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-
+        self.logger = logging.getLogger("metrics_facade")
+        
+        # Escolher adapter baseado na configuração
+        if getattr(active_config, 'USE_LEGACY_SERVICES', True):
+            self.logger.info("Inicializando com LegacyServiceAdapter")
+            self.adapter = LegacyServiceAdapter()
+        else:
+            self.logger.info("Inicializando com GLPIMetricsAdapter")
+            # Create GLPI adapter and query factory
+            self.glpi_config = GLPIConfig(
+                base_url=active_config.GLPI_URL,
+                app_token=active_config.GLPI_APP_TOKEN,
+                user_token=active_config.GLPI_USER_TOKEN,
+                timeout=getattr(active_config, "API_TIMEOUT", 30),
+            )
+            
+            # Import GLPIMetricsAdapter directly instead of using factory
+            from ...infrastructure.external.glpi.metrics_adapter import GLPIMetricsAdapter
+            
+            self.adapter = GLPIMetricsAdapter(self.glpi_config)
+            self.query_factory = MetricsQueryFactory(self.adapter)
+        
         # Load configuration
-        config = active_config()
+        config = active_config
         self.use_mock_data = config.USE_MOCK_DATA
-
-        # Create GLPI adapter and query factory
-        self.glpi_config = GLPIConfig(
-            base_url=config.GLPI_URL,
-            app_token=config.GLPI_APP_TOKEN,
-            user_token=config.GLPI_USER_TOKEN,
-            timeout=getattr(config, "API_TIMEOUT", 30),
-        )
-
-        # Import GLPIMetricsAdapter directly instead of using factory
-        from ...infrastructure.external.glpi.metrics_adapter import GLPIMetricsAdapter
-
-        self.glpi_adapter = GLPIMetricsAdapter(self.glpi_config)
-
-        self.query_factory = MetricsQueryFactory(self.glpi_adapter)
+        
+        self._initialize_facade()
+    
+    def _initialize_facade(self):
+        """Inicializa facade com configurações específicas do adapter"""
+        adapter_type = type(self.adapter).__name__
+        self.logger.info(f"MetricsFacade inicializado com {adapter_type}")
 
         # Cache namespaces
         self.METRICS_CACHE_NS = "metrics"
@@ -155,102 +169,35 @@ class MetricsFacade(UnifiedGLPIServiceContract):
 
     # Metrics Service Methods
 
-    def get_dashboard_metrics(self, correlation_id: Optional[str] = None) -> DashboardMetrics:
-        """
-        Obtém métricas do dashboard com fallback explícito para dados mock.
-        
-        Melhorias implementadas:
-        - Tratamento de erros mais específico
-        - Fallback explícito para dados mock
-        - Logs mais detalhados
-        - Sistema de retry básico
-        """
-        # Verificar se deve usar dados mock diretamente
-        if self.use_mock_data:
-            self.logger.info("Usando dados mock (configuração USE_MOCK_DATA=true)")
-            mock_data = get_mock_dashboard_metrics()
-            # Adicionar identificador de mock
-            if hasattr(mock_data, '__dict__'):
-                mock_data.data_source = "mock"
-                mock_data.is_mock_data = True
-            return mock_data
-        
-        # Verificar cache primeiro
-        cache_key = f"dashboard_metrics_{correlation_id or 'default'}"
-        cached_result = unified_cache.get(self.METRICS_CACHE_NS, cache_key)
-        if cached_result:
-            self.logger.info("Retornando métricas do cache")
-            return cached_result
-
-        async def _get_metrics():
-            query = self.query_factory.create_dashboard_metrics_query()
-            context = QueryContext(correlation_id=correlation_id)
-            return await query.execute(context=context)
-
-        # Tentar obter dados do GLPI com tratamento de erro melhorado
-        max_retries = 2
-        for attempt in range(max_retries + 1):
-            try:
-                api_response = self._run_async(_get_metrics())
-
-                # Verificar se a resposta é válida
-                if hasattr(api_response, "data") and api_response.data:
-                    result = api_response.data
-                    # Adicionar identificador de dados reais do GLPI
-                    if hasattr(result, '__dict__'):
-                        result.data_source = "glpi"
-                        result.is_mock_data = False
-                    # Cache do resultado
-                    unified_cache.set(self.METRICS_CACHE_NS, cache_key, result, ttl_seconds=180)
-                    self.logger.info("Métricas obtidas do GLPI com sucesso")
-                    return result
-                else:
-                    self.logger.warning("Resposta GLPI vazia ou inválida")
-                    break  # Não retry para resposta vazia
-
-            except Exception as e:
-                error_msg = str(e).lower()
-                
-                # Identificar tipo de erro
-                if any(auth_error in error_msg for auth_error in [
-                    'session_token_missing', 'unauthorized', 'authentication', 'token'
-                ]):
-                    self.logger.error(f"Erro de autenticação GLPI (tentativa {attempt + 1}): {e}")
-                    if attempt == 0:
-                        self.logger.warning("Verifique as credenciais GLPI (GLPI_APP_TOKEN, GLPI_USER_TOKEN)")
-                    
-                elif any(conn_error in error_msg for conn_error in [
-                    'connection', 'timeout', 'network', 'unreachable'
-                ]):
-                    self.logger.error(f"Erro de conexão GLPI (tentativa {attempt + 1}): {e}")
-                    if attempt == 0:
-                        self.logger.warning("Verifique a conectividade com o servidor GLPI")
-                    
-                else:
-                    self.logger.error(f"Erro desconhecido GLPI (tentativa {attempt + 1}): {e}")
-                
-                # Se é a última tentativa, fazer fallback
-                if attempt == max_retries:
-                    self.logger.error(f"Todas as {max_retries + 1} tentativas falharam, fazendo fallback para dados mock")
-                    mock_data = get_mock_dashboard_metrics()
-                    # Adicionar identificador de mock no fallback
-                    if hasattr(mock_data, '__dict__'):
-                        mock_data.data_source = "mock"
-                        mock_data.is_mock_data = True
-                    return mock_data
-                
-                # Aguardar antes da próxima tentativa
-                import time
-                time.sleep(1 * (attempt + 1))  # Backoff simples
-        
-        # Fallback final para dados mock
-        self.logger.warning("Fazendo fallback para dados mock devido a falhas no GLPI")
-        mock_data = get_mock_dashboard_metrics()
-        # Adicionar identificador de mock no fallback final
-        if hasattr(mock_data, '__dict__'):
-            mock_data.data_source = "mock"
-            mock_data.is_mock_data = True
-        return mock_data
+    def get_dashboard_metrics(self, correlation_id: str = None) -> DashboardMetrics:
+        """Obtém métricas do dashboard usando adapter configurado"""
+        try:
+            correlation_id = correlation_id or self._generate_correlation_id()
+            
+            # Log do adapter sendo usado
+            adapter_type = type(self.adapter).__name__
+            self.logger.info(f"Obtendo métricas via {adapter_type}", extra={
+                'correlation_id': correlation_id,
+                'adapter_type': adapter_type
+            })
+            
+            # Chamar adapter
+            metrics = self.adapter.get_dashboard_metrics(correlation_id)
+            
+            # Log de sucesso
+            self.logger.info(f"Métricas obtidas com sucesso via {adapter_type}", extra={
+                'correlation_id': correlation_id,
+                'total_tickets': getattr(metrics, 'total_tickets', 'N/A')
+            })
+            
+            return metrics
+            
+        except Exception as e:
+            self.logger.error(f"Erro ao obter métricas: {e}", extra={
+                'correlation_id': correlation_id,
+                'adapter_type': type(self.adapter).__name__
+            })
+            raise
 
     def get_dashboard_metrics_with_date_filter(
         self,
@@ -502,36 +449,41 @@ class MetricsFacade(UnifiedGLPIServiceContract):
             return [], []
 
     def get_technician_ranking(self, limit: int = 50) -> List[TechnicianRanking]:
-        """Get technician ranking."""
-        if self.use_mock_data:
-            self.logger.info("Using mock data for technician ranking")
-            return get_mock_technician_ranking(limit=limit)
-
-        cache_key = {"method": "technician_ranking", "limit": limit}
-
-        cached_result = unified_cache.get(self.TECHNICIANS_CACHE_NS, cache_key)
-        if cached_result:
-            return cached_result
-
-        async def _get_ranking():
-            query = self.query_factory.create_technician_ranking_query()
-            context = QueryContext(correlation_id=None)
-            return await query.execute(context=context)
-
+        """Obtém ranking de técnicos usando adapter configurado"""
         try:
-            api_response = self._run_async(_get_ranking())
-
-            # Extract List[TechnicianRanking] from ApiResponse
-            if hasattr(api_response, "data") and api_response.data:
-                result = api_response.data
-                unified_cache.set(self.TECHNICIANS_CACHE_NS, cache_key, result, ttl_seconds=300)
-                return result
+            correlation_id = self._generate_correlation_id()
+            
+            # Log do adapter sendo usado
+            adapter_type = type(self.adapter).__name__
+            self.logger.info(f"Obtendo ranking de técnicos via {adapter_type}", extra={
+                'correlation_id': correlation_id,
+                'adapter_type': adapter_type,
+                'limit': limit
+            })
+            
+            # Chamar adapter
+            api_response = self.adapter.get_technician_ranking(limit)
+            
+            # Extrair dados do ApiResponse se necessário
+            if hasattr(api_response, 'data') and api_response.data:
+                ranking = api_response.data
             else:
-                return []
-
+                ranking = api_response if isinstance(api_response, list) else []
+            
+            # Log de sucesso
+            self.logger.info(f"Ranking obtido com sucesso via {adapter_type}", extra={
+                'correlation_id': correlation_id,
+                'technicians_count': len(ranking) if ranking else 0
+            })
+            
+            return ranking
+            
         except Exception as e:
-            self.logger.error(f"Error getting technician ranking: {e}")
-            return []
+            self.logger.error(f"Erro ao obter ranking de técnicos: {e}", extra={
+                'adapter_type': type(self.adapter).__name__,
+                'limit': limit
+            })
+            raise
 
     def get_technician_ranking_with_filters(
         self,
@@ -543,6 +495,10 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         correlation_id: Optional[str] = None,
     ) -> List[TechnicianRanking]:
         """Get technician ranking with filters."""
+        if self.use_mock_data:
+            self.logger.info("Using mock data for technician ranking with filters")
+            return get_mock_technician_ranking(limit=limit)
+            
         cache_key = {
             "method": "technician_ranking_filters",
             "start_date": start_date,
@@ -603,23 +559,48 @@ class MetricsFacade(UnifiedGLPIServiceContract):
     # System Service Methods (Simplified implementations)
 
     def get_system_status(self) -> ApiResponse:
-        """Get system status."""
-        if self.use_mock_data:
-            return get_mock_system_status()
+        """Obtém status do sistema usando adapter configurado"""
+        try:
+            correlation_id = self._generate_correlation_id()
             
-        cache_key = {"method": "system_status"}
+            # Log do adapter sendo usado
+            adapter_type = type(self.adapter).__name__
+            self.logger.info(f"Obtendo status do sistema via {adapter_type}", extra={
+                'correlation_id': correlation_id,
+                'adapter_type': adapter_type
+            })
+            
+            # Chamar adapter
+            status = self.adapter.get_system_status()
+            
+            # Log de sucesso
+            self.logger.info(f"Status obtido com sucesso via {adapter_type}", extra={
+                'correlation_id': correlation_id,
+                'status': getattr(status, 'status', 'N/A')
+            })
+            
+            return status
+            
+        except Exception as e:
+            self.logger.error(f"Erro ao obter status do sistema: {e}", extra={
+                'adapter_type': type(self.adapter).__name__
+            })
+            raise
 
-        cached_result = unified_cache.get(self.SYSTEM_CACHE_NS, cache_key)
-        if cached_result:
-            return cached_result
-
-        # For now, return basic structure - can be expanded later
-        from ..dto.metrics_dto import create_success_response
-
-        status_data = {"status": "online", "message": "Sistema operacional"}
-        result = create_success_response(status_data, message="Sistema operacional")
-        unified_cache.set(self.SYSTEM_CACHE_NS, cache_key, result, ttl_seconds=60)
-        return result
+    def _generate_correlation_id(self) -> str:
+        """Gera um ID de correlação único"""
+        return str(uuid.uuid4())
+    
+    def get_adapter_info(self) -> Dict[str, Any]:
+        """Retorna informações sobre o adapter atual"""
+        return {
+            'adapter_type': type(self.adapter).__name__,
+            'is_legacy': isinstance(self.adapter, LegacyServiceAdapter),
+            'configuration': {
+                'USE_LEGACY_SERVICES': getattr(active_config, 'USE_LEGACY_SERVICES', False),
+                'USE_MOCK_DATA': getattr(active_config, 'USE_MOCK_DATA', False)
+            }
+        }
 
     def authenticate_with_retry(self) -> bool:
         """Authenticate with retry."""
@@ -627,5 +608,4 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         return True
 
 
-# Global facade instance
-metrics_facade = MetricsFacade()
+# Global facade instance removed - use instance from routes.py

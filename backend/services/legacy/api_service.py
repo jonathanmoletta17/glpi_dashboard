@@ -7,6 +7,7 @@ import requests
 from config.settings import active_config
 from services.legacy.glpi_service_facade import GLPIServiceFacade
 from utils.response_formatter import ResponseFormatter
+from utils.legacy_monitoring import legacy_monitor
 
 
 class APIService:
@@ -57,6 +58,7 @@ class APIService:
             self.logger.error(f"Unexpected error for {url}: {str(e)}")
             raise Exception("Erro inesperado na API")
 
+    @legacy_monitor.monitor_method("api_service_get_metrics")
     def get_metrics(self) -> Dict:
         """Get dashboard metrics from external API"""
         try:
@@ -77,6 +79,7 @@ class APIService:
                 },
             }
 
+    @legacy_monitor.monitor_method("api_service_get_system_status")
     def get_system_status(self) -> Dict:
         """Get current system status"""
         try:
@@ -118,6 +121,7 @@ class APIService:
             logging.warning(f"Could not fetch alerts: {str(e)}")
             return {"error": True, "message": str(e), "alerts": []}
 
+    @legacy_monitor.monitor_method("api_service_get_dashboard_metrics")
     def get_dashboard_metrics(
         self,
         start_date: Optional[str] = None,

@@ -14,10 +14,21 @@ export const apiService = {
       
       // Verificar se a resposta tem a estrutura esperada
       if (response.data?.data) {
-        return response.data.data;
+        const metrics = response.data.data;
+        // Garantir que as propriedades obrigatórias estejam presentes
+        return {
+          ...metrics,
+          data_source: metrics.data_source || 'glpi',
+          is_mock_data: metrics.is_mock_data ?? false
+        };
       } else if (response.data && 'niveis' in response.data) {
         // Resposta direta sem wrapper
-        return response.data as unknown as DashboardMetrics;
+        const metrics = response.data as unknown as DashboardMetrics;
+        return {
+          ...metrics,
+          data_source: metrics.data_source || 'glpi',
+          is_mock_data: metrics.is_mock_data ?? false
+        };
       }
       
       // Fallback para estrutura padrão se não houver dados
@@ -120,6 +131,8 @@ function createDefaultMetrics(): DashboardMetrics {
       pendentes: '0%',
       progresso: '0%',
       resolvidos: '0%'
-    }
+    },
+    data_source: 'mock' as const,
+    is_mock_data: true
   };
 }

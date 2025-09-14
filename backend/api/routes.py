@@ -12,6 +12,7 @@ from core.application.services.metrics_facade import MetricsFacade
 from utils.date_decorators import standard_date_validation
 from utils.performance import cache_with_filters, monitor_performance, performance_monitor
 from utils.prometheus_metrics import monitor_api_endpoint
+from utils.legacy_monitoring import legacy_monitor
 from utils.response_formatter import ResponseFormatter
 
 # Usar cache unificado da nova arquitetura (singleton)
@@ -165,7 +166,7 @@ def api_root():
             "message": "GLPI Dashboard API",
             "status": "healthy",
             "version": "1.0.0",
-            "endpoints": ["/status", "/health", "/metrics", "/technicians", "/tickets/new", "/alerts", "/docs"],
+            "endpoints": ["/status", "/health", "/metrics", "/technicians", "/tickets/new", "/alerts", "/docs", "/monitoring/legacy/metrics", "/monitoring/legacy/health", "/monitoring/legacy/reset"],
         }
     )
 
@@ -1386,6 +1387,32 @@ def glpi_health_check():
         )
 
 
+@api_bp.route('/config/migration', methods=['GET'])
+def get_migration_config():
+    """Retorna configuração atual de migração"""
+    try:
+        config_info = {
+            'use_legacy_services': active_config.USE_LEGACY_SERVICES,
+            'use_mock_data': active_config.USE_MOCK_DATA,
+            'legacy_adapter_timeout': active_config.LEGACY_ADAPTER_TIMEOUT,
+            'legacy_adapter_retry_count': active_config.LEGACY_ADAPTER_RETRY_COUNT,
+            'adapter_metrics_enabled': active_config.ENABLE_ADAPTER_METRICS,
+            'performance_log_enabled': active_config.ADAPTER_PERFORMANCE_LOG
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'configuration': config_info,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
 @api_bp.route("/docs", methods=["GET"])
 def swagger_ui():
     """Serve Swagger UI for API documentation"""
@@ -1443,6 +1470,79 @@ def swagger_ui():
     from flask import Response
 
     return Response(swagger_html, mimetype="text/html")
+
+
+# Legacy Service Monitoring Endpoints
+@api_bp.route("/monitoring/legacy/metrics", methods=["GET"])
+def get_legacy_metrics():
+    """Retorna métricas detalhadas dos serviços legacy"""
+    try:
+        metrics_summary = legacy_monitor.get_metrics_summary()
+        
+        return jsonify({
+            "status": "success",
+            "data": metrics_summary,
+            "timestamp": datetime.now().isoformat(),
+            "total_methods": len(metrics_summary)
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao obter métricas legacy: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+
+@api_bp.route("/monitoring/legacy/health", methods=["GET"])
+def get_legacy_health():
+    """Retorna status de saúde dos serviços legacy"""
+    try:
+        health_status = legacy_monitor.get_health_status()
+        
+        # Determinar código de status HTTP baseado na saúde
+        status_code = 200
+        if health_status.get("overall_health") == "degraded":
+            status_code = 206  # Partial Content
+        elif health_status.get("overall_health") == "unhealthy":
+            status_code = 503  # Service Unavailable
+            
+        return jsonify({
+            "status": "success",
+            "data": health_status,
+            "timestamp": datetime.now().isoformat()
+        }), status_code
+        
+    except Exception as e:
+        logger.error(f"Erro ao obter status de saúde legacy: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+
+@api_bp.route("/monitoring/legacy/reset", methods=["POST"])
+def reset_legacy_metrics():
+    """Reset das métricas dos serviços legacy"""
+    try:
+        # Limpar métricas do monitor
+        legacy_monitor.metrics.clear()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Métricas legacy resetadas com sucesso",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao resetar métricas legacy: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
 
 
 @api_bp.route("/openapi.yaml", methods=["GET"])

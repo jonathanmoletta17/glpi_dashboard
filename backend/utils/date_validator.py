@@ -42,6 +42,18 @@ class DateValidator:
             return False
 
     @classmethod
+    def is_valid_date(cls, date_str: str) -> bool:
+        """Alias para validate_date_format para compatibilidade.
+
+        Args:
+            date_str: String da data para validar
+
+        Returns:
+            bool: True se válida, False caso contrário
+        """
+        return cls.validate_date_format(date_str)
+
+    @classmethod
     def validate_date_range(cls, start_date: Optional[str], end_date: Optional[str]) -> bool:
         """Valida se o range de datas é válido (start_date <= end_date).
 

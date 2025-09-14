@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 export const API_CONFIG = {
-  BASE_URL: '/api',
-  TIMEOUT: 30000,
+  BASE_URL: 'http://localhost:5000/api', // Conexão direta temporária
+  TIMEOUT: 120000, // 2 minutos para consultas GLPI lentas
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
 };

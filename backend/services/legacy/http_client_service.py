@@ -58,24 +58,18 @@ class GLPIHttpClientService:
             try:
                 start_time = time.time()
                 
+                # Make the request
+                response = requests.request(method, url, **request_args)
+                
+                response_time = time.time() - start_time
+                
                 # Log request if structured logger available
                 if self.auth_service.structured_logger:
                     log_glpi_request(
-                        self.auth_service.structured_logger,
-                        method,
                         url,
-                        list(headers.keys())
+                        response.status_code,
+                        response_time
                     )
-                
-                # Monitor with Prometheus if available
-                try:
-                    with monitor_glpi_request(endpoint, method):
-                        response = requests.request(method, url, **request_args)
-                except NameError:
-                    # Fallback if Prometheus not available
-                    response = requests.request(method, url, **request_args)
-                
-                response_time = time.time() - start_time
                 
                 # Handle authentication expiry
                 if response.status_code == 401:
@@ -95,7 +89,7 @@ class GLPIHttpClientService:
                     )
                 
                 # Handle successful responses
-                if response.status_code in [200, 201]:
+                if response.status_code in [200, 201, 206]:
                     if parse_json:
                         try:
                             response_data = response.json()

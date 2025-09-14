@@ -3,10 +3,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field, root_validator, validator
-from pydantic.types import NonNegativeInt, PositiveInt
+# Removed problematic Pydantic types
 
 
-class TicketStatus(str, Enum):
+class TicketStatusEnum(str, Enum):
     """Enum para status de tickets."""
 
     NOVO = "novo"
@@ -15,6 +15,18 @@ class TicketStatus(str, Enum):
     RESOLVIDO = "resolvido"
     FECHADO = "fechado"
     CANCELADO = "cancelado"
+
+
+class TicketStatus(BaseModel):
+    """Modelo para contadores de status de tickets."""
+    
+    new: int = Field(0, ge=0, description="Número de tickets novos")
+    assigned: int = Field(0, ge=0, description="Número de tickets atribuídos")
+    planned: int = Field(0, ge=0, description="Número de tickets planejados")
+    waiting: int = Field(0, ge=0, description="Número de tickets aguardando")
+    solved: int = Field(0, ge=0, description="Número de tickets resolvidos")
+    closed: int = Field(0, ge=0, description="Número de tickets fechados")
+    total: int = Field(0, ge=0, description="Total de tickets")
 
 
 class TechnicianLevel(str, Enum):
@@ -30,11 +42,11 @@ class TechnicianLevel(str, Enum):
 class LevelMetrics(BaseModel):
     """Métricas de um nível específico (N1, N2, N3, N4)"""
 
-    novos: NonNegativeInt = Field(0, description="Número de tickets novos")
-    pendentes: NonNegativeInt = Field(0, description="Número de tickets pendentes")
-    progresso: NonNegativeInt = Field(0, description="Número de tickets em progresso")
-    resolvidos: NonNegativeInt = Field(0, description="Número de tickets resolvidos")
-    total: NonNegativeInt = Field(0, description="Total de tickets no nível")
+    novos: int = Field(0, ge=0, description="Número de tickets novos")
+    pendentes: int = Field(0, ge=0, description="Número de tickets pendentes")
+    progresso: int = Field(0, ge=0, description="Número de tickets em progresso")
+    resolvidos: int = Field(0, ge=0, description="Número de tickets resolvidos")
+    total: int = Field(0, ge=0, description="Total de tickets no nível")
 
     @root_validator(skip_on_failure=True)
     def calculate_total(cls, values):
@@ -82,6 +94,7 @@ class FiltersApplied(BaseModel):
 
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    date_range: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[str] = None
     level: Optional[str] = None
@@ -146,6 +159,7 @@ class ApiResponse(BaseModel):
     errors: Optional[List[str]] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     execution_time_ms: Optional[float] = None
+    correlation_id: Optional[str] = None
     # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
     data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
     is_mock_data: bool = Field(default=False, description="Indica se são dados simulados")

@@ -1,0 +1,346 @@
+{
+  "metadata": {
+    "test_execution_time": "2025-09-14T05:47:34.856723",
+    "total_duration_minutes": 0.28,
+    "python_version": "3.12.1 (tags/v3.12.1:2305ca5, Dec  7 2023, 22:03:25) [MSC v.1937 64 bit (AMD64)]",
+    "system_info": {
+      "cpu_count": 20,
+      "memory_total_gb": 63.66,
+      "platform": "win32"
+    }
+  },
+  "test_results": {
+    "isolated_test": {
+      "test_name": "GLPIServiceFacade Isolated Test",
+      "overall_metrics": {
+        "total_operations": 5,
+        "success_count": 5,
+        "error_count": 0,
+        "success_rate_percent": 100.0,
+        "total_duration_seconds": 2.213,
+        "response_time": {
+          "min_ms": 0.0,
+          "max_ms": 2049.548,
+          "avg_ms": 441.146,
+          "median_ms": 77.465,
+          "p95_ms": 3429.132,
+          "p99_ms": 3902.132
+        },
+        "memory_usage": {
+          "min_mb": 0.0,
+          "max_mb": 0.07,
+          "avg_mb": 0.02
+        },
+        "cpu_usage": {
+          "min_percent": 0.0,
+          "max_percent": 7.6,
+          "avg_percent": 1.52
+        }
+      },
+      "method_breakdown": {
+        "get_dashboard_metrics": {
+          "total_operations": 1,
+          "success_count": 1,
+          "error_count": 0,
+          "success_rate_percent": 100.0,
+          "total_duration_seconds": 2.05,
+          "response_time": {
+            "min_ms": 2049.548,
+            "max_ms": 2049.548,
+            "avg_ms": 2049.548,
+            "median_ms": 2049.548,
+            "p95_ms": 2049.548,
+            "p99_ms": 2049.548
+          },
+          "memory_usage": {
+            "min_mb": 0.07,
+            "max_mb": 0.07,
+            "avg_mb": 0.07
+          },
+          "cpu_usage": {
+            "min_percent": 7.6,
+            "max_percent": 7.6,
+            "avg_percent": 7.6
+          }
+        },
+        "get_ticket_count": {
+          "total_operations": 1,
+          "success_count": 1,
+          "error_count": 0,
+          "success_rate_percent": 100.0,
+          "total_duration_seconds": 0.084,
+          "response_time": {
+            "min_ms": 77.465,
+            "max_ms": 77.465,
+            "avg_ms": 77.465,
+            "median_ms": 77.465,
+            "p95_ms": 77.465,
+            "p99_ms": 77.465
+          },
+          "memory_usage": {
+            "min_mb": 0.02,
+            "max_mb": 0.02,
+            "avg_mb": 0.02
+          },
+          "cpu_usage": {
+            "min_percent": 0.0,
+            "max_percent": 0.0,
+            "avg_percent": 0.0
+          }
+        },
+        "get_metrics_by_level": {
+          "total_operations": 1,
+          "success_count": 1,
+          "error_count": 0,
+          "success_rate_percent": 100.0,
+          "total_duration_seconds": 0.0,
+          "response_time": {
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+            "avg_ms": 0.0,
+            "median_ms": 0.0,
+            "p95_ms": 0.0,
+            "p99_ms": 0.0
+          },
+          "memory_usage": {
+            "min_mb": 0.0,
+            "max_mb": 0.0,
+            "avg_mb": 0.0
+          },
+          "cpu_usage": {
+            "min_percent": 0.0,
+            "max_percent": 0.0,
+            "avg_percent": 0.0
+          }
+        },
+        "get_general_metrics": {
+          "total_operations": 1,
+          "success_count": 1,
+          "error_count": 0,
+          "success_rate_percent": 100.0,
+          "total_duration_seconds": 0.079,
+          "response_time": {
+            "min_ms": 78.715,
+            "max_ms": 78.715,
+            "avg_ms": 78.715,
+            "median_ms": 78.715,
+            "p95_ms": 78.715,
+            "p99_ms": 78.715
+          },
+          "memory_usage": {
+            "min_mb": 0.0,
+            "max_mb": 0.0,
+            "avg_mb": 0.0
+          },
+          "cpu_usage": {
+            "min_percent": 0.0,
+            "max_percent": 0.0,
+            "avg_percent": 0.0
+          }
+        },
+        "health_check": {
+          "total_operations": 1,
+          "success_count": 1,
+          "error_count": 0,
+          "success_rate_percent": 100.0,
+          "total_duration_seconds": 0.0,
+          "response_time": {
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+            "avg_ms": 0.0,
+            "median_ms": 0.0,
+            "p95_ms": 0.0,
+            "p99_ms": 0.0
+          },
+          "memory_usage": {
+            "min_mb": 0.0,
+            "max_mb": 0.0,
+            "avg_mb": 0.0
+          },
+          "cpu_usage": {
+            "min_percent": 0.0,
+            "max_percent": 0.0,
+            "avg_percent": 0.0
+          }
+        }
+      },
+      "memory_trace": {
+        "current_mb": 0.08,
+        "peak_mb": 0.11
+      }
+    },
+    "individual_services": {
+      "individual_services": {
+        "AuthenticationService": {
+          "overall_metrics": {
+            "total_operations": 3,
+            "success_count": 3,
+            "error_count": 0,
+            "success_rate_percent": 100.0,
+            "total_duration_seconds": 0.143,
+            "response_time": {
+              "min_ms": 0.0,
+              "max_ms": 142.268,
+              "avg_ms": 47.423,
+              "median_ms": 0.0,
+              "p95_ms": 256.082,
+              "p99_ms": 278.845
+            }
+          },
+          "method_breakdown": {
+            "authenticate": {
+              "response_time_ms": 142.268,
+              "success": true,
+              "result_type": "bool"
+            },
+            "get_api_headers": {
+              "response_time_ms": 0.0,
+              "success": true,
+              "result_type": "dict"
+            },
+            "is_authenticated": {
+              "response_time_ms": 0.0,
+              "success": true,
+              "result_type": "bool"
+            }
+          }
+        },
+        "CacheService": {
+          "overall_metrics": {
+            "total_operations": 2,
+            "success_count": 2,
+            "error_count": 0,
+            "success_rate_percent": 100.0,
+            "total_duration_seconds": 0.739,
+            "response_time": {
+              "min_ms": 0.0,
+              "max_ms": 738.751,
+              "avg_ms": 369.376,
+              "median_ms": 369.376,
+              "p95_ms": 1366.69,
+              "p99_ms": 1455.34
+            }
+          },
+          "method_breakdown": {
+            "get_cache_stats": {
+              "response_time_ms": 0.0,
+              "success": true,
+              "result_type": "dict"
+            },
+            "cache_hit_test": {
+              "response_time_ms": 738.751,
+              "success": true,
+              "result_type": "dict"
+            }
+          }
+        },
+        "HttpClientService": {
+          "overall_metrics": {
+            "total_operations": 1,
+            "success_count": 1,
+            "error_count": 0,
+            "success_rate_percent": 100.0,
+            "total_duration_seconds": 0.0,
+            "response_time": {
+              "min_ms": 0.0,
+              "max_ms": 0.0,
+              "avg_ms": 0.0,
+              "median_ms": 0.0,
+              "p95_ms": 0.0,
+              "p99_ms": 0.0
+            }
+          },
+          "method_breakdown": {
+            "health_check": {
+              "response_time_ms": 0.0,
+              "success": true,
+              "result_type": "dict"
+            }
+          }
+        },
+        "MetricsService": {
+          "overall_metrics": {
+            "total_operations": 2,
+            "success_count": 2,
+            "error_count": 0,
+            "success_rate_percent": 100.0,
+            "total_duration_seconds": 0.046,
+            "response_time": {
+              "min_ms": 0.0,
+              "max_ms": 46.303,
+              "avg_ms": 23.152,
+              "median_ms": 23.152,
+              "p95_ms": 85.661,
+              "p99_ms": 91.217
+            }
+          },
+          "method_breakdown": {
+            "get_ticket_count": {
+              "response_time_ms": 46.303,
+              "success": true,
+              "result_type": "dict"
+            },
+            "get_metrics_by_level": {
+              "response_time_ms": 0.0,
+              "success": true,
+              "result_type": "dict"
+            }
+          }
+        }
+      }
+    },
+    "stress_test": {
+      "test_name": "Concurrent Stress Test",
+      "concurrent_requests": 100,
+      "successful_requests": 100,
+      "failed_requests": 0,
+      "overall_metrics": {
+        "total_operations": 100,
+        "success_count": 100,
+        "error_count": 0,
+        "success_rate_percent": 100.0,
+        "total_duration_seconds": 13.188,
+        "response_time": {
+          "min_ms": 2156.414,
+          "max_ms": 3004.097,
+          "avg_ms": 2570.564,
+          "median_ms": 2536.121,
+          "p95_ms": 2960.872,
+          "p99_ms": 3004.004
+        },
+        "memory_usage": {
+          "min_mb": 1.64,
+          "max_mb": 1.64,
+          "avg_mb": 1.64
+        },
+        "cpu_usage": {
+          "min_percent": 13.0,
+          "max_percent": 13.0,
+          "avg_percent": 13.0
+        }
+      },
+      "resource_usage": {
+        "cpu_delta_percent": 13.0,
+        "memory_delta_mb": 1.64
+      },
+      "identified_bottlenecks": []
+    }
+  },
+  "summary": {
+    "overall_health": "excellent",
+    "key_metrics": {
+      "facade_success_rate": 100.0,
+      "avg_response_time_ms": 441.146,
+      "p95_response_time_ms": 3429.132,
+      "concurrent_success_rate": 100.0
+    },
+    "critical_issues": [],
+    "performance_grade": "A"
+  },
+  "recommendations": [
+    "Implementar métricas de observabilidade (Prometheus/Grafana)",
+    "Adicionar alertas para degradação de performance",
+    "Estabelecer SLAs baseados nos resultados do baseline",
+    "Executar testes de baseline regularmente para detectar regressões"
+  ]
+}

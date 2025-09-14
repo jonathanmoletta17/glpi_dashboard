@@ -1,0 +1,51 @@
+{
+  "execution_timestamp": "2025-09-14T07:58:50.460465",
+  "total_execution_time": 75.03,
+  "tests_executed": 3,
+  "tests_passed": 2,
+  "tests_failed": 1,
+  "results": {
+    "concurrent_requests_100": {
+      "test_name": "concurrent_requests_100",
+      "total_requests": 100,
+      "successful_requests": 100,
+      "failed_requests": 0,
+      "success_rate": 100.0,
+      "total_execution_time": 14.935,
+      "requests_per_second": 6.7,
+      "response_times": {
+        "min": 0.0,
+        "max": 14.904,
+        "mean": 2.938,
+        "median": 0.0,
+        "p95": 14.826
+      },
+      "errors": [],
+      "test_passed": false,
+      "validation_messages": [
+        "P95 muito alto: 14.826s"
+      ]
+    },
+    "memory_usage_under_load": {
+      "test_name": "memory_usage_under_load",
+      "initial_memory_mb": 58.93,
+      "final_memory_mb": 58.93,
+      "memory_increase_mb": 0.0,
+      "execution_time": 0.013,
+      "requests_executed": 50,
+      "test_passed": true,
+      "validation_messages": []
+    },
+    "sustained_load_1_minute": {
+      "test_name": "sustained_load_1_minute",
+      "duration_seconds": 60,
+      "total_requests": 30,
+      "successful_requests": 30,
+      "success_rate": 100.0,
+      "average_response_time": 0.0,
+      "requests_per_minute": 30.0,
+      "test_passed": true,
+      "validation_messages": []
+    }
+  }
+}

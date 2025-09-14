@@ -23,6 +23,7 @@ class Config:
         """Inicializa e valida as configurações"""
         self._validate_required_configs()
         self._validate_config_values()
+        self._validate_migration_config()
 
     # Flask Security Configuration
     @property
@@ -69,7 +70,16 @@ class Config:
     GLPI_APP_TOKEN = os.environ.get("GLPI_APP_TOKEN")
 
     # Mock Data Mode - Para desenvolvimento e testes da interface
-    USE_MOCK_DATA = os.environ.get("USE_MOCK_DATA", "False").lower() == "true"
+    USE_MOCK_DATA = os.environ.get("USE_MOCK_DATA", "True").lower() == "true"
+
+    # Configurações de Migração Legacy
+    USE_LEGACY_SERVICES = os.environ.get("USE_LEGACY_SERVICES", "True").lower() == "true"
+    LEGACY_ADAPTER_TIMEOUT = int(os.environ.get("LEGACY_ADAPTER_TIMEOUT", "30"))
+    LEGACY_ADAPTER_RETRY_COUNT = int(os.environ.get("LEGACY_ADAPTER_RETRY_COUNT", "3"))
+
+    # Configurações de Monitoramento
+    ENABLE_ADAPTER_METRICS = os.environ.get("ENABLE_ADAPTER_METRICS", "True").lower() == "true"
+    ADAPTER_PERFORMANCE_LOG = os.environ.get("ADAPTER_PERFORMANCE_LOG", "True").lower() == "true"
 
     # Backend API
     BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:8000")
@@ -130,7 +140,16 @@ class Config:
                     "CORS_ORIGINS must be explicitly set in production. " "Use comma-separated list of allowed origins."
                 )
             # Development default - still restricted
-            return ["http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:3000", "http://127.0.0.1:5000"]
+            return [
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:5000",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:5000",
+                "http://127.0.0.1:5173",
+                "http://localhost:8000",
+                "http://127.0.0.1:8000",
+            ]
 
         # Parse and validate origins
         origin_list = [origin.strip() for origin in origins.split(",") if origin.strip()]
@@ -235,6 +254,24 @@ class Config:
                 import warnings
 
                 warnings.warn("DEBUG logging level may expose sensitive information in production")
+
+    def _validate_migration_config(self) -> None:
+        """Valida configurações de migração"""
+        errors = []
+        
+        # Validar combinações inválidas
+        if self.USE_LEGACY_SERVICES and self.USE_MOCK_DATA:
+            errors.append("USE_LEGACY_SERVICES e USE_MOCK_DATA não podem ser True simultaneamente")
+        
+        # Validar timeouts
+        if self.LEGACY_ADAPTER_TIMEOUT < 5:
+            errors.append("LEGACY_ADAPTER_TIMEOUT deve ser >= 5 segundos")
+        
+        if self.LEGACY_ADAPTER_RETRY_COUNT < 1:
+            errors.append("LEGACY_ADAPTER_RETRY_COUNT deve ser >= 1")
+        
+        if errors:
+            raise ConfigValidationError(f"Configuração de migração inválida: {'; '.join(errors)}")
 
     @classmethod
     def configure_logging(cls) -> logging.Logger:
@@ -371,8 +408,33 @@ config_by_name = {
     "test": TestingConfig,
 }
 
-# Configuração ativa
+# Configuração ativa baseada no ambiente
 active_config = config_by_name[os.environ.get("FLASK_ENV", "dev")]
+
+
+def validate_migration_config():
+    """Valida configurações de migração"""
+    errors = []
+    
+    # Validar combinações inválidas
+    if active_config.USE_LEGACY_SERVICES and active_config.USE_MOCK_DATA:
+        errors.append("USE_LEGACY_SERVICES e USE_MOCK_DATA não podem ser True simultaneamente")
+    
+    # Validar timeouts
+    if active_config.LEGACY_ADAPTER_TIMEOUT < 5:
+        errors.append("LEGACY_ADAPTER_TIMEOUT deve ser >= 5 segundos")
+    
+    if active_config.LEGACY_ADAPTER_RETRY_COUNT < 1:
+        errors.append("LEGACY_ADAPTER_RETRY_COUNT deve ser >= 1")
+    
+    if errors:
+        raise ValueError(f"Configuração inválida: {'; '.join(errors)}")
+    
+    return True
+
+
+# Executar validação na inicialização
+validate_migration_config()
 
 
 def get_config():

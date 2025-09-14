@@ -56,8 +56,11 @@ class GLPIConfig:
     session_timeout_minutes: int = 60
 
     def __post_init__(self):
-        # Remover trailing slash da URL
+        # Remover trailing slash e /apirest.php da URL para evitar duplicação
         self.base_url = self.base_url.rstrip("/")
+        # Remove /apirest.php if already present in base_url to avoid duplication
+        if self.base_url.endswith('/apirest.php'):
+            self.base_url = self.base_url[:-len('/apirest.php')]
 
 
 class GLPISessionManager:
@@ -194,7 +197,7 @@ class GLPIAPIClient:
         # Construir URL
         url = f"{self.config.base_url}/apirest.php/{endpoint.lstrip('/')}"
         if params:
-            url += f"?{urlencode(params, doseqs=True)}"
+            url += f"?{urlencode(params, doseq=True)}"
 
         # Log da requisição
         self.logger.debug(
@@ -227,7 +230,8 @@ class GLPIAPIClient:
                     },
                 )
 
-                if response.status_code == 200:
+                # Aceitar códigos de sucesso 2xx (200, 201, 206, etc.)
+                if 200 <= response.status_code < 300:
                     try:
                         return response.json()
                     except json.JSONDecodeError:
