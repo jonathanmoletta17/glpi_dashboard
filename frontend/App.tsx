@@ -470,14 +470,29 @@ export default function App() {
                             </p>
                             <div className="space-y-1">
                               <div className="text-xs">
-                                <span className={textColor}>Total:</span>
-                                <span className="font-medium ml-1">{tech.total || 0}</span>
+                                <span className={textColor}>Tickets:</span>
+                                <span className="font-medium ml-1">{tech.ticket_count || 0}</span>
                               </div>
                               <div className="text-xs">
-                                <span className={textColor}>Resolvidos:</span>
+                                <span className={textColor}>Score:</span>
                                 <span className="font-medium ml-1">
-                                  {tech.ticketsResolved || Math.floor((tech.total || 0) * 0.95)}
+                                  {tech.performance_score ? tech.performance_score.toFixed(1) : '0.0'}
                                 </span>
+                              </div>
+                              {/* Indicador de fonte dos dados */}
+                              <div className="text-xs mt-1">
+                                <span className={`inline-block px-1 py-0.5 rounded text-xs font-medium ${
+                                  tech.data_source === 'glpi' 
+                                    ? 'bg-green-500 bg-opacity-20 text-green-200' 
+                                    : 'bg-orange-500 bg-opacity-20 text-orange-200'
+                                }`}>
+                                  {tech.data_source === 'glpi' ? 'GLPI' : tech.data_source?.toUpperCase() || 'UNKNOWN'}
+                                </span>
+                                {tech.is_mock_data && (
+                                  <span className="inline-block ml-1 px-1 py-0.5 rounded text-xs font-medium bg-red-500 bg-opacity-20 text-red-200">
+                                    MOCK
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

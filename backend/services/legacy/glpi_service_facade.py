@@ -406,7 +406,7 @@ class GLPIServiceFacade:
         """Get technician name from ID."""
         return self.metrics_service.get_technician_name(tech_id)
         
-    def get_technician_performance(self) -> Dict[str, Any]:
+    def get_technician_performance(self, limit: int = 10) -> Dict[str, Any]:
         """Get technician performance data for ranking."""
         try:
             self.logger.info("Obtendo dados de performance dos técnicos")
@@ -441,7 +441,7 @@ class GLPIServiceFacade:
             }
             
             # Usa paginação iterativa para obter todos os tickets
-            all_tickets = self._paginated_search("search/Ticket", base_params, max_results=limit * 3)
+            all_tickets = self._paginated_search("search/Ticket", params, max_results=limit * 3)
             
             if not all_tickets:
                 self.logger.error("Falha ao obter tickets via paginação")
@@ -452,7 +452,7 @@ class GLPIServiceFacade:
                 }
             
             # Process tickets data
-            tickets = tickets_data.get("data", [])
+            tickets = all_tickets
             technician_stats = {}
             
             for ticket in tickets:
@@ -590,6 +590,9 @@ class GLPIServiceFacade:
                 "forcedisplay[4]": "19",  # Modification date
                 "forcedisplay[5]": "3",   # Priority
             }
+            
+            # Copy base params to working params
+            params = base_params.copy()
             
             # Add date filters if provided
             criteria_index = 2  # Ajustado para nova estrutura com apenas 2 critérios de status

@@ -142,7 +142,9 @@ class MockDataGenerator:
                     name=tech["name"],
                     ticket_count=tech["ticket_count"],
                     level=tech["level"],
-                    performance_score=tech["performance_score"]
+                    performance_score=tech["performance_score"],
+                    data_source="mock",
+                    is_mock_data=True
                 )
             )
 
@@ -171,7 +173,9 @@ class MockDataGenerator:
                         name=name,
                         ticket_count=ticket_count,
                         level=level,
-                        performance_score=round(performance_score, 2)
+                        performance_score=round(performance_score, 2),
+                        data_source="mock",
+                        is_mock_data=True
                     )
                 )
 

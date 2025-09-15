@@ -328,7 +328,7 @@ class LegacyDataConverter:
             List[TechnicianRanking]: Lista de rankings convertidos
         """
         try:
-            self._logger.debug("Iniciando conversão de technician ranking")
+            self._logger.debug("Iniciating technician ranking conversion")
             
             if not isinstance(legacy_data, list):
                 self._logger.warning("Dados de ranking não são uma lista, retornando lista vazia")
@@ -345,13 +345,19 @@ class LegacyDataConverter:
                     # Extrair e validar campos
                     tech_id = self._safe_int(item.get('id', idx + 1))
                     name = self._safe_string(item.get('name', item.get('technician_name', f'Técnico {idx + 1}')))
-                    tickets_resolved = self._safe_int(item.get('tickets_resolved', item.get('resolved_count', 0)))
+                    tickets_resolved = self._safe_int(item.get('tickets_resolved', item.get('resolved_count', item.get('ticket_count', 0))))
                     avg_resolution_time = self._safe_float(item.get('avg_resolution_time', item.get('avg_time', 0.0)))
                     satisfaction_score = self._safe_float(item.get('satisfaction_score', item.get('rating', 0.0)))
                     level_str = item.get('level', item.get('technician_level', 'nivel1'))
                     
+                    # Extrair campos de fonte de dados
+                    data_source = self._safe_string(item.get('data_source', 'unknown'))
+                    is_mock_data = bool(item.get('is_mock_data', False))
+                    
+                    # Extract data source fields
+                    
                     # Calcular performance score baseado na satisfação e tempo de resolução
-                    performance_score = satisfaction_score if satisfaction_score > 0 else None
+                    performance_score = self._safe_float(item.get('performance_score', satisfaction_score if satisfaction_score > 0 else None))
                     
                     # Criar objeto TechnicianRanking
                     ranking = TechnicianRanking(
@@ -359,7 +365,9 @@ class LegacyDataConverter:
                         name=name,
                         ticket_count=tickets_resolved,
                         level=self._convert_technician_level(level_str).value,
-                        performance_score=performance_score
+                        performance_score=performance_score,
+                        data_source=data_source,
+                        is_mock_data=is_mock_data
                     )
                     
                     rankings.append(ranking)
@@ -679,8 +687,14 @@ class LegacyDataConverter:
         try:
             self._logger.debug("Iniciando conversão de lista de ranking de técnicos")
             
+            # Se recebemos uma lista diretamente (do GLPIServiceFacade)
+            if isinstance(legacy_data, list):
+                self._logger.debug("Dados recebidos como lista direta")
+                return self.convert_technician_ranking(legacy_data)
+            
+            # Se recebemos um dicionário
             if not isinstance(legacy_data, dict):
-                self._logger.warning("Dados de entrada não são um dicionário")
+                self._logger.warning("Dados de entrada não são um dicionário nem lista")
                 return []
             
             # Extrair dados dos técnicos
