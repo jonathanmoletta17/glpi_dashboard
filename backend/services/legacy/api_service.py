@@ -32,7 +32,7 @@ class APIService:
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
 
-    def _make_request(self, endpoint: str, method: str = "GET", data: Dict = None) -> Dict:
+    def _make_request(self, endpoint: str, method: str = "GET", data: Dict[str, Any] = None) -> Dict[str, Any]:
         """Make HTTP request to external API"""
         url = f"{self.base_url}{endpoint}"
 
@@ -59,7 +59,7 @@ class APIService:
             raise Exception("Erro inesperado na API")
 
     @legacy_monitor.monitor_method("api_service_get_metrics")
-    def get_metrics(self) -> Dict:
+    def get_metrics(self) -> Dict[str, Any]:
         """Get dashboard metrics from external API"""
         try:
             return self._make_request("/api/metrics")
@@ -80,7 +80,7 @@ class APIService:
             }
 
     @legacy_monitor.monitor_method("api_service_get_system_status")
-    def get_system_status(self) -> Dict:
+    def get_system_status(self) -> Dict[str, Any]:
         """Get current system status"""
         try:
             return self._make_request("/api/system/status")
@@ -101,7 +101,7 @@ class APIService:
             logging.warning(f"Search failed: {str(e)}")
             return {"error": True, "message": str(e), "results": []}
 
-    def get_chart_data(self, chart_type: str) -> Dict:
+    def get_chart_data(self, chart_type: str) -> Dict[str, Any]:
         """Get data for specific chart types"""
         try:
             return self._make_request(f"/api/charts/{chart_type}")
@@ -127,7 +127,7 @@ class APIService:
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         correlation_id: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Get dashboard metrics from GLPI service"""
         try:
             if start_date and end_date:
@@ -142,11 +142,11 @@ class APIService:
             self.logger.error(f"Error getting dashboard metrics: {str(e)}")
             return None
 
-    def format_response(self, data: Any) -> Dict:
+    def format_response(self, data: Any) -> Dict[str, Any]:
         """Format successful response"""
         return ResponseFormatter.success(data)
 
-    def format_error_response(self, message: str) -> Dict:
+    def format_error_response(self, message: str) -> Dict[str, Any]:
         """Format error response"""
         return ResponseFormatter.error(message)
 
@@ -178,7 +178,7 @@ class APIService:
             self.logger.error(f"Error getting trends data: {str(e)}")
             return []
 
-    def get_performance_metrics(self) -> Dict:
+    def get_performance_metrics(self) -> Dict[str, Any]:
         """Get performance metrics"""
         import time
 

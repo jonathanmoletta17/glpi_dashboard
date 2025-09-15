@@ -166,7 +166,7 @@ def api_root():
             "message": "GLPI Dashboard API",
             "status": "healthy",
             "version": "1.0.0",
-            "endpoints": ["/status", "/health", "/metrics", "/technicians", "/tickets/new", "/alerts", "/docs", "/monitoring/legacy/metrics", "/monitoring/legacy/health", "/monitoring/legacy/reset"],
+            "endpoints": ["/status", "/health", "/metrics", "/technicians", "/technician-performance", "/tickets/new", "/alerts", "/docs", "/monitoring/legacy/metrics", "/monitoring/legacy/health", "/monitoring/legacy/reset"],
         }
     )
 
@@ -930,6 +930,48 @@ def get_technician_ranking(validated_start_date=None, validated_end_date=None, v
 
     except Exception as e:
         logger.error(f"Erro inesperado ao buscar ranking de técnicos: {e}", exc_info=True)
+        error_response = ResponseFormatter.format_error_response(f"Erro interno do servidor: {str(e)}", [str(e)])
+        return jsonify(error_response), 500
+
+
+@api_bp.route("/technician-performance")
+@monitor_api_endpoint("get_technician_performance")
+@monitor_performance
+@cache_with_filters(timeout=300)
+def get_technician_performance():
+    """Endpoint para obter dados de performance dos técnicos"""
+    start_time = time.time()
+    
+    try:
+        # Import GLPIServiceFacade for technician performance
+        from services.legacy.glpi_service_facade import GLPIServiceFacade
+        glpi_facade = GLPIServiceFacade()
+        
+        # Buscar dados de performance dos técnicos
+        result = glpi_facade.get_technician_performance()
+        
+        # Verificar resultado
+        if not result.get('success'):
+            logger.error(f"Falha na busca de performance: {result.get('error', 'Erro desconhecido')}")
+            error_response = ResponseFormatter.format_error_response(
+                result.get('error', 'Não foi possível obter dados de performance'), 
+                ["Erro na comunicação com GLPI"]
+            )
+            return jsonify(error_response), 503
+        
+        # Formatar resposta
+        response_data = {
+            "success": True,
+            "data": result.get('data', []),
+            "source": result.get('source', 'api'),
+            "response_time_ms": round((time.time() - start_time) * 1000, 2),
+            "cached": result.get('source') == 'cache',
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar performance dos técnicos: {e}", exc_info=True)
         error_response = ResponseFormatter.format_error_response(f"Erro interno do servidor: {str(e)}", [str(e)])
         return jsonify(error_response), 500
 

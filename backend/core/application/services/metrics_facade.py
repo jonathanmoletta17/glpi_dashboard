@@ -465,15 +465,21 @@ class MetricsFacade(UnifiedGLPIServiceContract):
             api_response = self.adapter.get_technician_ranking(limit)
             
             # Extrair dados do ApiResponse se necessário
-            if hasattr(api_response, 'data') and api_response.data:
+            if hasattr(api_response, 'data') and api_response.data is not None:
                 ranking = api_response.data
+            elif isinstance(api_response, list):
+                ranking = api_response
             else:
-                ranking = api_response if isinstance(api_response, list) else []
+                ranking = []
+            
+            # Garantir que ranking é uma lista
+            if not isinstance(ranking, list):
+                ranking = []
             
             # Log de sucesso
             self.logger.info(f"Ranking obtido com sucesso via {adapter_type}", extra={
                 'correlation_id': correlation_id,
-                'technicians_count': len(ranking) if ranking else 0
+                'technicians_count': len(ranking)
             })
             
             return ranking
@@ -495,6 +501,8 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         correlation_id: Optional[str] = None,
     ) -> List[TechnicianRanking]:
         """Get technician ranking with filters."""
+        self.logger.debug(f"MetricsFacade.get_technician_ranking_with_filters chamado - use_mock_data: {self.use_mock_data}, adapter: {type(self.adapter).__name__}")
+        
         if self.use_mock_data:
             self.logger.info("Using mock data for technician ranking with filters")
             return get_mock_technician_ranking(limit=limit)
@@ -512,12 +520,35 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         cached_result = unified_cache.get(self.TECHNICIANS_CACHE_NS, cache_key)
         if cached_result:
             return cached_result
-
+        
+        # Usar adapter diretamente se USE_LEGACY_SERVICES for True
+        if getattr(active_config, 'USE_LEGACY_SERVICES', True):
+            self.logger.info("Usando LegacyServiceAdapter diretamente")
+            result = self.adapter.get_technician_ranking_with_filters(
+                start_date=start_date,
+                end_date=end_date,
+                level=level,
+                limit=limit,
+                entity_id=entity_id
+            )
+            unified_cache.set(self.TECHNICIANS_CACHE_NS, cache_key, result, ttl_seconds=300)
+            return result
+        
+        # Usar query_factory para o novo adapter
         async def _get_ranking():
+            self.logger.info("Criando filtros DTO")
             filters = self._create_filters_dto(start_date=start_date, end_date=end_date, level=level, entity_id=entity_id)
+            self.logger.info(f"Filtros criados: {filters}")
+            
+            self.logger.info("Criando query via query_factory")
             query = self.query_factory.create_technician_ranking_query()
+            self.logger.info(f"Query criada: {type(query).__name__}")
+            
             context = QueryContext(correlation_id=correlation_id)
-            return await query.execute(filters=filters, context=context)
+            self.logger.info("Executando query")
+            result = await query.execute(filters=filters, context=context)
+            self.logger.info(f"Query executada, resultado: {type(result).__name__}")
+            return result
 
         try:
             api_response = self._run_async(_get_ranking())
@@ -540,7 +571,32 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         """Get new tickets."""
         if self.use_mock_data:
             return get_mock_new_tickets(limit=limit)
-        # For now, return basic structure - can be expanded later
+        
+        # Use GLPIServiceFacade for real data
+        try:
+            from services.legacy.glpi_service_facade import GLPIServiceFacade
+            glpi_facade = GLPIServiceFacade()
+            result = glpi_facade.get_new_tickets_with_filters(limit=limit)
+            
+            if result.get('success'):
+                tickets = []
+                for ticket_data in result.get('data', []):
+                    ticket = NewTicket(
+                        id=str(ticket_data.get('id', '')),
+                        title=ticket_data.get('title', ''),
+                        description=ticket_data.get('description', ''),
+                        date=ticket_data.get('created_date', ''),
+                        requester=ticket_data.get('requester', ''),
+                        priority=ticket_data.get('priority', 'normal'),
+                        status="Novo",  # Default status as string
+                        data_source="glpi",
+                        is_mock_data=False
+                    )
+                    tickets.append(ticket)
+                return tickets
+        except Exception as e:
+            self.logger.error(f"Error getting new tickets: {e}")
+        
         return []
 
     def get_new_tickets_with_filters(
@@ -553,8 +609,9 @@ class MetricsFacade(UnifiedGLPIServiceContract):
         end_date: Optional[str] = None,
     ) -> List[NewTicket]:
         """Get new tickets with filters."""
-        # For now, return basic structure - can be expanded later
-        return []
+        # For now, use the basic get_new_tickets method
+        # Filtering can be implemented later
+        return self.get_new_tickets(limit=limit)
 
     # System Service Methods (Simplified implementations)
 

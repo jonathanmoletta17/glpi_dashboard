@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
+import re
 
 from pydantic import BaseModel, Field, root_validator, validator
 # Removed problematic Pydantic types
@@ -97,9 +98,21 @@ class FiltersApplied(BaseModel):
     date_range: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[str] = None
-    level: Optional[str] = None
+    level: Optional[TechnicianLevel] = None
     technician: Optional[str] = None
     category: Optional[str] = None
+
+    @validator('start_date', 'end_date')
+    def validate_date_format(cls, v):
+        """Valida formato de data YYYY-MM-DD"""
+        if v is not None:
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+                raise ValueError('Date must be in YYYY-MM-DD format')
+            try:
+                datetime.strptime(v, '%Y-%m-%d')
+            except ValueError:
+                raise ValueError('Invalid date format, must be YYYY-MM-DD')
+        return v
 
 
 class DashboardMetrics(BaseModel):
@@ -127,7 +140,7 @@ class TechnicianRanking(BaseModel):
     id: int
     name: str
     ticket_count: int = Field(ge=0)
-    level: str
+    level: TechnicianLevel = Field(..., description="Nível do técnico (N1, N2, N3, N4)")
     performance_score: Optional[float] = None
     # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
     data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
@@ -140,7 +153,7 @@ class NewTicket(BaseModel):
     id: str
     title: str
     description: str
-    date: str
+    date: str = Field(..., description="Data do ticket no formato YYYY-MM-DD")
     requester: str
     priority: str
     status: str = "Novo"
@@ -148,6 +161,17 @@ class NewTicket(BaseModel):
     # ← NOVOS CAMPOS PARA IDENTIFICAÇÃO DE FONTE
     data_source: str = Field(default="unknown", description="Fonte dos dados: 'glpi' ou 'mock'")
     is_mock_data: bool = Field(default=False, description="Indica se são dados simulados")
+
+    @validator('date')
+    def validate_date_format(cls, v):
+        """Valida formato de data YYYY-MM-DD"""
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+            raise ValueError('Date must be in YYYY-MM-DD format')
+        try:
+            datetime.strptime(v, '%Y-%m-%d')
+        except ValueError:
+            raise ValueError('Invalid date format, must be YYYY-MM-DD')
+        return v
 
 
 class ApiResponse(BaseModel):

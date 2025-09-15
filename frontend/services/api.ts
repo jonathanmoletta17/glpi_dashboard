@@ -1,4 +1,4 @@
-import { httpClient } from './httpClient';
+import httpClientWithRetry from './httpClient';
 import type { 
   DashboardMetrics, 
   TechnicianRanking, 
@@ -10,28 +10,45 @@ import type {
 export const apiService = {
   async getMetrics(): Promise<DashboardMetrics> {
     try {
-      const response = await httpClient.get<ApiResponse<DashboardMetrics>>('/metrics');
+      const response = await httpClientWithRetry.get<any>('/metrics');
       
-      // Verificar se a resposta tem a estrutura esperada
-      if (response.data?.data) {
-        const metrics = response.data.data;
-        // Garantir que as propriedades obrigatórias estejam presentes
-        return {
-          ...metrics,
-          data_source: metrics.data_source || 'glpi',
-          is_mock_data: metrics.is_mock_data ?? false
-        };
-      } else if (response.data && 'niveis' in response.data) {
-        // Resposta direta sem wrapper
-        const metrics = response.data as unknown as DashboardMetrics;
-        return {
-          ...metrics,
-          data_source: metrics.data_source || 'glpi',
-          is_mock_data: metrics.is_mock_data ?? false
-        };
+      // A API retorna uma estrutura aninhada: response.data.data.data
+      // Onde o primeiro 'data' é do axios, o segundo é do wrapper da API, e o terceiro são os dados reais
+      if (response.data?.data?.data) {
+        const metrics = response.data.data.data;
+        
+        // Verificar se tem a estrutura de níveis esperada
+        if (metrics.niveis) {
+          // Criar estrutura compatível com DashboardMetrics
+          return {
+            niveis: {
+              n1: metrics.niveis.n1 || { novos: 0, pendentes: 0, progresso: 0, resolvidos: 0, total: 0 },
+              n2: metrics.niveis.n2 || { novos: 0, pendentes: 0, progresso: 0, resolvidos: 0, total: 0 },
+              n3: metrics.niveis.n3 || { novos: 0, pendentes: 0, progresso: 0, resolvidos: 0, total: 0 },
+              n4: metrics.niveis.n4 || { novos: 0, pendentes: 0, progresso: 0, resolvidos: 0, total: 0 },
+              geral: {
+                novos: metrics.novos || 0,
+                pendentes: metrics.pendentes || 0,
+                progresso: metrics.progresso || 0,
+                resolvidos: metrics.resolvidos || 0,
+                total: metrics.total || 0
+              }
+            },
+            tendencias: metrics.tendencias || {
+              novos: '0%',
+              pendentes: '0%',
+              progresso: '0%',
+              resolvidos: '0%'
+            },
+            data_source: metrics.data_source || 'glpi',
+            is_mock_data: metrics.is_mock_data ?? false,
+            timestamp: metrics.timestamp
+          };
+        }
       }
       
       // Fallback para estrutura padrão se não houver dados
+      console.warn('Estrutura de dados inesperada na resposta da API:', response.data);
       return createDefaultMetrics();
     } catch (error) {
       console.error('Erro ao buscar métricas:', error);
@@ -42,7 +59,7 @@ export const apiService = {
 
   async getTechnicianRanking(): Promise<TechnicianRanking[]> {
     try {
-      const response = await httpClient.get<ApiResponse<TechnicianRanking[]>>('/technicians/ranking');
+      const response = await httpClientWithRetry.get<ApiResponse<TechnicianRanking[]>>('/technicians/ranking');
       
       if (response.data?.data) {
         return response.data.data;
@@ -59,7 +76,7 @@ export const apiService = {
 
   async getNewTickets(limit: number = 8): Promise<NewTicket[]> {
     try {
-      const response = await httpClient.get<ApiResponse<NewTicket[]>>('/tickets/new', {
+      const response = await httpClientWithRetry.get<ApiResponse<NewTicket[]>>('/tickets/new', {
         params: { limit }
       });
       
@@ -78,7 +95,7 @@ export const apiService = {
 
   async getSystemStatus(): Promise<SystemStatus> {
     try {
-      const response = await httpClient.get<ApiResponse<SystemStatus>>('/status');
+      const response = await httpClientWithRetry.get<ApiResponse<SystemStatus>>('/status');
       
       if (response.data?.data) {
         return response.data.data;

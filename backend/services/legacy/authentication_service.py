@@ -47,14 +47,18 @@ class GLPIAuthenticationService:
         self.retry_delay_base = 2
         
     def _normalize_glpi_url(self, url: str) -> str:
-        """Normalize GLPI URL removing /apirest.php duplication."""
+        """Normalize GLPI URL ensuring it ends with /apirest.php."""
         if not url or not isinstance(url, str):
             return url
             
         url = url.rstrip('/')
         
-        if url.endswith('/apirest.php'):
-            return url.rsplit('/apirest.php', 1)[0]
+        # Ensure URL ends with /apirest.php
+        if not url.endswith('/apirest.php'):
+            if url.endswith('/apirest'):
+                url += '.php'
+            else:
+                url += '/apirest.php'
         
         return url
         
@@ -81,8 +85,44 @@ class GLPIAuthenticationService:
         return self.authenticate()
         
     def authenticate(self) -> bool:
-        """Authenticate with GLPI and get session token."""
-        return self._authenticate_with_retry()
+        """Authenticate with GLPI and store session token with retry logic and detailed logging."""
+        self.logger.info(f"[AUTH] Starting authentication process - URL: {self.glpi_url}")
+        
+        for attempt in range(self.max_retries):
+            try:
+                self.logger.info(f"[AUTH] Authentication attempt {attempt + 1}/{self.max_retries}")
+                
+                # Log current session state
+                self.logger.debug(f"[AUTH] Current session token: {'***' if self.session_token else 'None'}")
+                self.logger.debug(f"[AUTH] Current authenticated state: {not self._is_token_expired()}")
+                
+                success = self._perform_authentication()
+                if success:
+                    self.logger.info(f"[AUTH] Authentication successful on attempt {attempt + 1}")
+                    self.logger.debug(f"[AUTH] New session token obtained: {'***' if self.session_token else 'None'}")
+                    return True
+                else:
+                    self.logger.warning(f"[AUTH] Authentication failed on attempt {attempt + 1} - no exception thrown")
+                    
+            except requests.exceptions.ConnectionError as e:
+                self.logger.error(f"[AUTH] Connection error on attempt {attempt + 1}: {e}")
+            except requests.exceptions.Timeout as e:
+                self.logger.error(f"[AUTH] Timeout error on attempt {attempt + 1}: {e}")
+            except requests.exceptions.HTTPError as e:
+                self.logger.error(f"[AUTH] HTTP error on attempt {attempt + 1}: {e}")
+            except Exception as e:
+                self.logger.error(f"[AUTH] Unexpected error on attempt {attempt + 1}: {e}")
+                
+            if attempt < self.max_retries - 1:
+                delay = self.retry_delay_base ** attempt
+                self.logger.info(f"[AUTH] Waiting {delay} seconds before retry...")
+                time.sleep(delay)
+        
+        self.logger.error(f"[AUTH] All {self.max_retries} authentication attempts failed")
+        self.session_token = None
+        self.token_created_at = None
+        self.token_expires_at = None
+        return False
         
     def _authenticate_with_retry(self) -> bool:
         """Authenticate with exponential backoff retry."""
@@ -105,11 +145,7 @@ class GLPIAuthenticationService:
     def _perform_authentication(self) -> bool:
         """Perform the actual authentication request."""
         # Construct the proper API URL
-        if self.glpi_url.endswith('/apirest.php'):
-            base_url = self.glpi_url.rsplit('/apirest.php', 1)[0]
-        else:
-            base_url = self.glpi_url.rstrip('/')
-        url = f"{base_url}/apirest.php/initSession"
+        url = f"{self.glpi_url}/initSession"
         headers = {
             "Content-Type": "application/json",
             "App-Token": self.app_token,
@@ -155,6 +191,7 @@ class GLPIAuthenticationService:
             
         return {
             "Content-Type": "application/json",
+            "Accept": "application/json",
             "App-Token": self.app_token,
             "Session-Token": self.session_token,
         }

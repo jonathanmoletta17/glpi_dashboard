@@ -41,4 +41,5 @@ app.register_blueprint(comparison_bp)
 # app.register_blueprint(dashboard_bp, url_prefix='/dashboard') # Removendo esta linha
 
 if __name__ == "__main__":
-    app.run(host=app.config["HOST"], port=app.config["PORT"], debug=app.config["DEBUG"])
+    config = active_config()
+    app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)

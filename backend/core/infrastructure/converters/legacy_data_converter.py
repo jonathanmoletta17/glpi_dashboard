@@ -414,8 +414,8 @@ class LegacyDataConverter:
                     # Normalizar status
                     status = self._normalize_status(status)
                     
-                    # Formatar data como string
-                    date_str = (created_at or datetime.now()).strftime('%Y-%m-%d %H:%M:%S')
+                    # Formatar data como string (apenas YYYY-MM-DD)
+                    date_str = (created_at or datetime.now()).strftime('%Y-%m-%d')
                     
                     # Criar objeto NewTicket
                     ticket = NewTicket(
@@ -625,3 +625,76 @@ class LegacyDataConverter:
         except Exception as e:
             self._logger.error(f"Erro na validação de dados convertidos: {e}")
             return False
+    
+    def convert_new_tickets_list(self, legacy_data: Dict[str, Any]) -> List[NewTicket]:
+        """Converte dados legacy de tickets para lista de NewTicket.
+        
+        Args:
+            legacy_data: Dados legacy contendo tickets
+            
+        Returns:
+            List[NewTicket]: Lista de tickets convertidos
+        """
+        try:
+            self._logger.debug("Iniciando conversão de lista de tickets")
+            
+            if not isinstance(legacy_data, dict):
+                self._logger.warning("Dados de entrada não são um dicionário")
+                return []
+            
+            # Extrair dados dos tickets
+            tickets_data = legacy_data.get('data', [])
+            if not isinstance(tickets_data, list):
+                self._logger.warning("Dados de tickets não são uma lista")
+                return []
+            
+            converted_tickets = []
+            
+            for ticket_data in tickets_data:
+                try:
+                    # Usar o método existente convert_new_tickets para cada ticket
+                    ticket_list = self.convert_new_tickets({'data': [ticket_data]})
+                    if ticket_list:
+                        converted_tickets.extend(ticket_list)
+                except Exception as e:
+                    self._logger.warning(f"Erro ao converter ticket individual: {e}")
+                    continue
+            
+            self._logger.info(f"Conversão de lista de tickets concluída: {len(converted_tickets)} tickets")
+            return converted_tickets
+            
+        except Exception as e:
+            self._logger.error(f"Erro na conversão de lista de tickets: {e}")
+            return []
+    
+    def convert_technician_ranking_list(self, legacy_data: Dict[str, Any]) -> List[TechnicianRanking]:
+        """Converte dados legacy de ranking de técnicos para lista de TechnicianRanking.
+        
+        Args:
+            legacy_data: Dados legacy contendo ranking de técnicos
+            
+        Returns:
+            List[TechnicianRanking]: Lista de rankings convertidos
+        """
+        try:
+            self._logger.debug("Iniciando conversão de lista de ranking de técnicos")
+            
+            if not isinstance(legacy_data, dict):
+                self._logger.warning("Dados de entrada não são um dicionário")
+                return []
+            
+            # Extrair dados dos técnicos
+            technicians_data = legacy_data.get('data', [])
+            if not isinstance(technicians_data, list):
+                self._logger.warning("Dados de técnicos não são uma lista")
+                return []
+            
+            # Usar o método existente convert_technician_ranking
+            converted_rankings = self.convert_technician_ranking(technicians_data)
+            
+            self._logger.info(f"Conversão de lista de ranking de técnicos concluída: {len(converted_rankings)} técnicos")
+            return converted_rankings
+            
+        except Exception as e:
+            self._logger.error(f"Erro na conversão de lista de ranking de técnicos: {e}")
+            return []

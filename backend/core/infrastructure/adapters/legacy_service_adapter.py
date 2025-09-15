@@ -690,7 +690,7 @@ class LegacyServiceAdapter(UnifiedGLPIServiceContract):
             Lista de rankings de técnicos
         """
         try:
-            self.logger.info(f"Obtendo ranking de técnicos com filtros - correlation_id: {correlation_id}")
+            self.logger.debug(f"LegacyServiceAdapter.get_technician_ranking_with_filters chamado - correlation_id: {correlation_id}")
             
             # Prepara filtros
             filters = {

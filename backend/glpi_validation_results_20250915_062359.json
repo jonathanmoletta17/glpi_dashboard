@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-09-15T06:23:59.309670",
+  "connectivity": true,
+  "authentication": false,
+  "basic_data": {},
+  "technician_ranking": [],
+  "performance_metrics": {},
+  "summary": {
+    "total_issues": 0,
+    "critical_issues": [
+      "Falha na autenticação GLPI"
+    ],
+    "recommendations": []
+  }
+}

@@ -524,7 +524,9 @@ def generate_comparison_report():
             legacy_adapter, new_adapter, correlation_id
         )
         
-
+        report['tests']['new_tickets'] = _compare_new_tickets(
+            legacy_adapter, new_adapter, correlation_id
+        )
         
         # Gerar resumo e recomendações
         report['summary'] = _calculate_comparison_summary(report['tests'])

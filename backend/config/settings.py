@@ -55,45 +55,51 @@ class Config:
     def PORT(self) -> int:
         """Porta do servidor com validação"""
         try:
-            port = int(os.environ.get("PORT", 8000))
+            port = int(os.environ.get("PORT", 5000))
             if not (1 <= port <= 65535):
                 raise ValueError(f"Porta inválida: {port}")
             return port
         except ValueError as e:
             raise ConfigValidationError(f"Erro na configuração PORT: {e}")
 
-    HOST = os.environ.get("HOST", "127.0.0.1")
+    @property
+    def HOST(self) -> str:
+        """Host binding configuration"""
+        host = os.environ.get("HOST", "127.0.0.1")
+        if not isinstance(host, str):
+            raise ConfigValidationError(f"HOST must be a string, got {type(host)}")
+        return host
 
     # GLPI API
-    GLPI_URL = os.environ.get("GLPI_URL", "http://10.73.0.79/glpi/apirest.php")
-    GLPI_USER_TOKEN = os.environ.get("GLPI_USER_TOKEN")
-    GLPI_APP_TOKEN = os.environ.get("GLPI_APP_TOKEN")
+    GLPI_URL = os.getenv('GLPI_URL', 'http://cau.ppiratini.intra.rs.gov.br/glpi/apirest.php')
+    GLPI_USER_TOKEN = os.getenv('GLPI_USER_TOKEN')
+    GLPI_APP_TOKEN = os.getenv('GLPI_APP_TOKEN')
 
     # Mock Data Mode - Para desenvolvimento e testes da interface
-    USE_MOCK_DATA = os.environ.get("USE_MOCK_DATA", "True").lower() == "true"
+    USE_MOCK_DATA = os.getenv("USE_MOCK_DATA", "True").lower() == "true"
 
     # Configurações de Migração Legacy
-    USE_LEGACY_SERVICES = os.environ.get("USE_LEGACY_SERVICES", "True").lower() == "true"
-    LEGACY_ADAPTER_TIMEOUT = int(os.environ.get("LEGACY_ADAPTER_TIMEOUT", "30"))
-    LEGACY_ADAPTER_RETRY_COUNT = int(os.environ.get("LEGACY_ADAPTER_RETRY_COUNT", "3"))
+    USE_LEGACY_SERVICES = os.getenv("USE_LEGACY_SERVICES", "True").lower() == "true"
+    LEGACY_ADAPTER_TIMEOUT = int(os.getenv("LEGACY_ADAPTER_TIMEOUT", "30"))
+    LEGACY_ADAPTER_RETRY_COUNT = int(os.getenv("LEGACY_ADAPTER_RETRY_COUNT", "3"))
 
     # Configurações de Monitoramento
-    ENABLE_ADAPTER_METRICS = os.environ.get("ENABLE_ADAPTER_METRICS", "True").lower() == "true"
-    ADAPTER_PERFORMANCE_LOG = os.environ.get("ADAPTER_PERFORMANCE_LOG", "True").lower() == "true"
+    ENABLE_ADAPTER_METRICS = os.getenv("ENABLE_ADAPTER_METRICS", "True").lower() == "true"
+    ADAPTER_PERFORMANCE_LOG = os.getenv("ADAPTER_PERFORMANCE_LOG", "True").lower() == "true"
 
     # Backend API
-    BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:8000")
-    API_KEY = os.environ.get("API_KEY", "")
+    BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:5000")
+    API_KEY = os.getenv("API_KEY", "")
 
     # Observabilidade
-    PROMETHEUS_GATEWAY_URL = os.environ.get("PROMETHEUS_GATEWAY_URL", "http://localhost:9091")
-    PROMETHEUS_JOB_NAME = os.environ.get("PROMETHEUS_JOB_NAME", "glpi_dashboard")
-    STRUCTURED_LOGGING = os.environ.get("STRUCTURED_LOGGING", "True").lower() == "true"
+    PROMETHEUS_GATEWAY_URL = os.getenv("PROMETHEUS_GATEWAY_URL", "http://localhost:9091")
+    PROMETHEUS_JOB_NAME = os.getenv("PROMETHEUS_JOB_NAME", "glpi_dashboard")
+    STRUCTURED_LOGGING = os.getenv("STRUCTURED_LOGGING", "True").lower() == "true"
 
     @property
     def LOG_FILE_PATH(self) -> str:
         """Log file path with directory validation"""
-        log_path = os.environ.get("LOG_FILE_PATH", "logs/app.log")
+        log_path = os.getenv("LOG_FILE_PATH", "logs/app.log")
 
         # Ensure log directory exists
         log_dir = os.path.dirname(log_path)
@@ -105,19 +111,19 @@ class Config:
 
         return log_path
 
-    LOG_MAX_BYTES = int(os.environ.get("LOG_MAX_BYTES", "10485760"))  # 10MB
-    LOG_BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", "5"))
+    LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", "10485760"))  # 10MB
+    LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
     # Alertas
-    ALERT_RESPONSE_TIME_THRESHOLD = float(os.environ.get("ALERT_RESPONSE_TIME_THRESHOLD", "300"))  # 300ms
-    ALERT_ERROR_RATE_THRESHOLD = float(os.environ.get("ALERT_ERROR_RATE_THRESHOLD", "0.05"))  # 5%
-    ALERT_ZERO_TICKETS_THRESHOLD = int(os.environ.get("ALERT_ZERO_TICKETS_THRESHOLD", "60"))  # 60 segundos
+    ALERT_RESPONSE_TIME_THRESHOLD = float(os.getenv("ALERT_RESPONSE_TIME_THRESHOLD", "300"))  # 300ms
+    ALERT_ERROR_RATE_THRESHOLD = float(os.getenv("ALERT_ERROR_RATE_THRESHOLD", "0.05"))  # 5%
+    ALERT_ZERO_TICKETS_THRESHOLD = int(os.getenv("ALERT_ZERO_TICKETS_THRESHOLD", "60"))  # 60 segundos
 
     @property
     def API_TIMEOUT(self) -> int:
         """Timeout da API com validação"""
         try:
-            timeout = int(os.environ.get("API_TIMEOUT", "30"))
+            timeout = int(os.getenv("API_TIMEOUT", "30"))
             if not (1 <= timeout <= 300):
                 raise ValueError(f"Timeout deve estar entre 1 e 300 segundos: {timeout}")
             return timeout
@@ -125,14 +131,14 @@ class Config:
             raise ConfigValidationError(f"Erro na configuração API_TIMEOUT: {e}")
 
     # Logging
-    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     # CORS - Security: Use environment-configurable allowlist
     @property
-    def CORS_ORIGINS(self) -> list:
+    def CORS_ORIGINS(self) -> list[str]:
         """CORS origins with security validation"""
-        origins = os.environ.get("CORS_ORIGINS", "").strip()
+        origins = os.getenv("CORS_ORIGINS", "").strip()
         if not origins:
             # Secure default: no wildcards in production
             if not self.DEBUG:
@@ -161,29 +167,29 @@ class Config:
         return origin_list
 
     # Redis Cache
-    REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-    CACHE_TYPE = os.environ.get("CACHE_TYPE", "RedisCache")
-    CACHE_REDIS_URL = os.environ.get("CACHE_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CACHE_TYPE = os.getenv("CACHE_TYPE", "RedisCache")
+    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", os.getenv("REDIS_URL", "redis://localhost:6379/0"))
 
     @property
     def CACHE_DEFAULT_TIMEOUT(self) -> int:
         """Timeout do cache com validação"""
         try:
-            timeout = int(os.environ.get("CACHE_DEFAULT_TIMEOUT", "300"))
+            timeout = int(os.getenv("CACHE_DEFAULT_TIMEOUT", "300"))
             if not (10 <= timeout <= 3600):
                 raise ValueError(f"Cache timeout deve estar entre 10 e 3600 segundos: {timeout}")
             return timeout
         except ValueError as e:
             raise ConfigValidationError(f"Erro na configuração CACHE_DEFAULT_TIMEOUT: {e}")
 
-    CACHE_KEY_PREFIX = os.environ.get("CACHE_KEY_PREFIX", "glpi_dashboard:")
+    CACHE_KEY_PREFIX = os.getenv("CACHE_KEY_PREFIX", "glpi_dashboard:")
 
     # Performance Settings
     @property
     def PERFORMANCE_TARGET_P95(self) -> int:
         """Target de performance P95 com validação"""
         try:
-            target = int(os.environ.get("PERFORMANCE_TARGET_P95", "300"))
+            target = int(os.getenv("PERFORMANCE_TARGET_P95", "300"))
             if not (50 <= target <= 10000):
                 raise ValueError(f"Performance target deve estar entre 50 e 10000ms: {target}")
             return target
@@ -194,12 +200,12 @@ class Config:
     @property
     def MAX_CONTENT_LENGTH(self) -> int:
         """Tamanho máximo de conteúdo"""
-        return int(os.environ.get("MAX_CONTENT_LENGTH", "16777216"))  # 16MB
+        return int(os.getenv("MAX_CONTENT_LENGTH", "16777216"))  # 16MB
 
     @property
     def RATE_LIMIT_PER_MINUTE(self) -> int:
         """Limite de requisições por minuto"""
-        return int(os.environ.get("RATE_LIMIT_PER_MINUTE", "100"))
+        return int(os.getenv("RATE_LIMIT_PER_MINUTE", "100"))
 
     def _validate_required_configs(self) -> None:
         """Valida configurações obrigatórias"""
@@ -352,7 +358,7 @@ class ProductionConfig(Config):
 
     # Security: Require explicit CORS configuration in production
     @property
-    def CORS_ORIGINS(self) -> list:
+    def CORS_ORIGINS(self) -> list[str]:
         """CORS origins - must be explicitly configured in production"""
         origins = os.environ.get("CORS_ORIGINS", "").strip()
         if not origins:
@@ -378,7 +384,10 @@ class ProductionConfig(Config):
     @property
     def HOST(self) -> str:
         """Production host binding - default to all interfaces"""
-        return os.environ.get("HOST", "0.0.0.0")
+        host = os.environ.get("HOST", "0.0.0.0")
+        if not isinstance(host, str):
+            raise ConfigValidationError(f"HOST must be a string, got {type(host)}")
+        return host
 
     # Security headers configuration
     SECURITY_HEADERS = {
