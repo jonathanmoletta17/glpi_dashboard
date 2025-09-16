@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo \"No frontend unit tests configured. Add your test runner (e.g. vitest)\" && exit 0",
+    "test:e2e": "echo \"No E2E configured. Use Playwright or Cypress and update this script\" && exit 0"
   },
   "dependencies": {
     "react": "^18.2.0",
