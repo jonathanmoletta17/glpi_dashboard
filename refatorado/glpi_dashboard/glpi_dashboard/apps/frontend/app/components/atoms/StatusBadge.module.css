@@ -1,0 +1,39 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font: 500 0.85rem/1.2 "Inter", sans-serif;
+  text-transform: capitalize;
+}
+
+.default {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--color-fg);
+}
+
+.created {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.in_progress {
+  background: rgba(129, 140, 248, 0.2);
+  color: #a5b4fc;
+}
+
+.pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #facc15;
+}
+
+.solved {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.closed {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
