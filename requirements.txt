@@ -5,20 +5,20 @@ Flask-Caching==2.1.0
 Flask-SQLAlchemy==3.0.5
 
 # HTTP client and utilities
-requests==2.31.0
+requests==2.32.4
 python-dotenv==1.0.0
 
 # Email validation
 email-validator==2.0.0
 
 # Production server
-gunicorn==21.2.0
+gunicorn==23.0.0
 
 # Database support (optional)
 # psycopg2-binary==2.9.7  # Removido - projeto usa MySQL
 
 # Development dependencies
-werkzeug==2.3.7
+werkzeug==3.0.6
 httpx
 psutil
 # requests já listado acima
