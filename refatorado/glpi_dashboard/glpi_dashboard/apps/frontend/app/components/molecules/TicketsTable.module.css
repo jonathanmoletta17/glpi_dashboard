@@ -1,0 +1,26 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+th {
+  font: 600 0.85rem/1.4 "Inter", sans-serif;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+td {
+  font: 500 0.95rem/1.5 "Inter", sans-serif;
+  color: var(--color-fg);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}

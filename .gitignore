@@ -111,3 +111,8 @@ nginx/
 .kiro/steering/byterover-rules.md
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md
+# Refatorado project artifacts
+refatorado/glpi_dashboard/glpi_dashboard/apps/frontend/node_modules/
+refatorado/glpi_dashboard/glpi_dashboard/data/
+refatorado/glpi_dashboard/glpi_dashboard/.coverage
+refatorado/glpi_dashboard/glpi_dashboard/apps/frontend/.next/
