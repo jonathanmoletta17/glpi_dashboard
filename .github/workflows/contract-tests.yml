@@ -291,7 +291,7 @@ jobs:
       
       - name: Comentar PR com resultados
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -453,7 +453,7 @@ jobs:
       
       - name: Comentar breaking changes no PR
         if: failure()
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
