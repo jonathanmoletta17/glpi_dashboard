@@ -55,7 +55,7 @@ jobs:
         pytest --cov=. --cov-report=xml --cov-report=html --cov-report=term-missing
         
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./backend/coverage.xml
         flags: backend
@@ -114,7 +114,7 @@ jobs:
         npm test -- --coverage --watchAll=false
         
     - name: Upload frontend coverage
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./frontend/coverage/lcov.info
         flags: frontend
